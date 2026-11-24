@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Dusun, InfrastructureType, Report, UserProfile } from '@/types';
 import ModalWrapper from '@/components/ui/ModalWrapper';
-import { MapPin, Navigation, AlertCircle, X, Shield, Lock } from 'lucide-react';
-import { VILLAGE_CENTER } from '@/data/geo-teluk-pulai-luar';
+import { MapPin, Navigation, AlertCircle, X, Shield, Upload, Image as ImageIcon } from 'lucide-react';
+import { VILLAGE_CENTER } from '@/data/geo-simandulang';
+import { useToast } from '@/components/ui/Toast';
 
 const DynamicMapPicker = dynamic(() => import('@/components/Map/MapView'), {
   ssr: false,
@@ -29,6 +30,28 @@ export default function ReportModal({
   onClose,
   onSubmit,
 }: ReportModalProps) {
+  return (
+    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="max-w-2xl" zIndex="z-[9999]">
+      {isOpen && (
+        <ReportForm
+          currentUser={currentUser}
+          onClose={onClose}
+          onSubmit={onSubmit}
+        />
+      )}
+    </ModalWrapper>
+  );
+}
+
+function ReportForm({
+  currentUser,
+  onClose,
+  onSubmit,
+}: {
+  currentUser: UserProfile;
+  onClose: () => void;
+  onSubmit: (newReport: Omit<Report, 'id' | 'ticketNumber' | 'createdAt' | 'updatedAt' | 'status'>) => void;
+}) {
   const [reporterName, setReporterName] = useState(currentUser.name);
   const [reporterPhone, setReporterPhone] = useState(currentUser.phone);
   const [reporterNik, setReporterNik] = useState(currentUser.nik || '');
@@ -47,17 +70,12 @@ export default function ReportModal({
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Sinkronisasi data user saat modal terbuka
-  useEffect(() => {
-    setReporterName(currentUser.name);
-    setReporterPhone(currentUser.phone);
-    setReporterNik(currentUser.nik || '');
-    setDusun(currentUser.dusun);
-  }, [currentUser, isOpen]);
+  const { error: toastError, success: toastSuccess } = useToast();
 
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
       setErrorMsg('Perangkat atau browser tidak mendukung fitur Geolocation.');
+      toastError('GPS Tidak Didukung', 'Browser tidak mendukung pendeteksi lokasi otomatis.');
       return;
     }
 
@@ -66,24 +84,42 @@ export default function ReportModal({
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setCoords({
-          lat: Number(position.coords.latitude.toFixed(6)),
-          lng: Number(position.coords.longitude.toFixed(6)),
-        });
+        const lat = Number(position.coords.latitude.toFixed(6));
+        const lng = Number(position.coords.longitude.toFixed(6));
+        setCoords({ lat, lng });
         setIsGettingLocation(false);
+        toastSuccess('Koordinat Terdeteksi', `Titik GPS [${lat}, ${lng}] berhasil diambil.`);
       },
       () => {
         setIsGettingLocation(false);
         setErrorMsg('Gagal mengambil titik GPS. Silakan tentukan titik langsung di peta.');
+        toastError('Gagal Mengambil GPS', 'Silakan pilih titik lokasi kerusakan langsung pada peta.');
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg('Ukuran file maksimal 5MB.');
+      toastError('Ukuran File Terlalu Besar', 'Maksimal ukuran foto adalah 5MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      setPhotoUrl(uploadEvent.target?.result as string);
+      toastSuccess('Foto Berhasil Diunggah', 'Foto dokumentasi kerusakan berhasil dimuat.');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !description) {
       setErrorMsg('Mohon lengkapi judul dan deskripsi kerusakan.');
+      toastError('Data Belum Lengkap', 'Mohon lengkapi judul dan deskripsi kerusakan fasilitas.');
       return;
     }
 
@@ -99,30 +135,32 @@ export default function ReportModal({
       description,
       infrastructureType,
       dusun,
-      addressDetail,
-      photoUrl:
-        photoUrl ||
-        'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
       latitude: coords.lat,
       longitude: coords.lng,
+      addressDetail: addressDetail.trim() || undefined,
+      photoUrl: photoUrl.trim() || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
     });
 
     onClose();
   };
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="max-w-2xl" zIndex="z-[9999]">
-      {/* Modal Header */}
+    <>
+      {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-        <div>
-          <h3 className="text-base font-bold text-slate-900">
-            Formulir Lapor Kerusakan Infrastruktur Desa
-          </h3>
-          <p className="text-xs text-slate-500">
-            Desa Teluk Pulai Luar • Akun Pelapor: <strong>{currentUser.name}</strong>
-          </p>
+        <div className="flex items-center gap-2">
+          <MapPin className="w-5 h-5 text-emerald-700" />
+          <div>
+            <h3 className="text-base font-bold text-slate-900">
+              Formulir Lapor Kerusakan Fasilitas Desa
+            </h3>
+            <p className="text-xs text-slate-500">
+              Desa Simandulang • Akun Pelapor: <strong>{currentUser.name}</strong>
+            </p>
+          </div>
         </div>
         <button
+          type="button"
           onClick={onClose}
           className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition"
         >
@@ -130,20 +168,59 @@ export default function ReportModal({
         </button>
       </div>
 
-      {/* Modal Body */}
-      <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
+      {/* Form Content */}
+      <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs sm:text-sm">
         {errorMsg && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2 text-xs">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
-        {/* Opsi Perlindungan Privasi */}
-        <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-start gap-2.5">
-          <Lock className="w-4 h-4 text-emerald-700 mt-0.5 shrink-0" />
-          <div>
-            <label className="flex items-center gap-2 cursor-pointer font-bold text-emerald-950">
+        {/* Info Pelapor & Privasi */}
+        <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-emerald-950 flex items-center gap-1.5">
+              <Shield className="w-4 h-4 text-emerald-700" /> Identitas Pelapor Terverifikasi
+            </span>
+            <span className="text-[11px] bg-emerald-200/60 text-emerald-900 font-medium px-2 py-0.5 rounded">
+              Warga {dusun}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div>
+              <span className="text-slate-500 block">Nama:</span>
+              <input
+                type="text"
+                required
+                value={reporterName}
+                onChange={(e) => setReporterName(e.target.value)}
+                className="w-full px-2 py-1 bg-white border border-emerald-300 rounded font-medium text-slate-800"
+              />
+            </div>
+            <div>
+              <span className="text-slate-500 block">No. HP / WA:</span>
+              <input
+                type="text"
+                required
+                value={reporterPhone}
+                onChange={(e) => setReporterPhone(e.target.value)}
+                className="w-full px-2 py-1 bg-white border border-emerald-300 rounded font-medium text-slate-800"
+              />
+            </div>
+            <div>
+              <span className="text-slate-500 block">NIK KTP:</span>
+              <input
+                type="text"
+                value={reporterNik}
+                onChange={(e) => setReporterNik(e.target.value)}
+                placeholder="16 digit NIK..."
+                className="w-full px-2 py-1 bg-white border border-emerald-300 rounded font-medium text-slate-800"
+              />
+            </div>
+          </div>
+          <div className="pt-1 border-t border-emerald-200/50">
+            <label className="flex items-center gap-2 cursor-pointer text-xs text-emerald-950 font-medium">
               <input
                 type="checkbox"
                 checked={hideIdentity}
@@ -153,7 +230,7 @@ export default function ReportModal({
               Samarkan Nama & Kontak Saya di Peta Publik (Rekomendasi Privasi)
             </label>
             <p className="text-[11px] text-emerald-800 mt-0.5">
-              Identitas Anda hanya dapat dilihat oleh Perangkat Desa untuk keperluan verifikasi. Pengunjung umum hanya akan melihat &ldquo;Warga {dusun} (Anonim)&rdquo;.
+              Identitas Anda hanya dapat dilihat oleh Perangkat Desa Simandulang untuk keperluan verifikasi. Pengunjung umum hanya akan melihat &ldquo;Warga {dusun} (Anonim)&rdquo;.
             </p>
           </div>
         </div>
@@ -185,11 +262,11 @@ export default function ReportModal({
               onChange={(e) => setDusun(e.target.value as Dusun)}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
             >
-              <option value="Dusun I">Dusun I (Pesisir Nelayan)</option>
+              <option value="Dusun I">Dusun I (Simandulang Pantai / Pesisir)</option>
               <option value="Dusun II">Dusun II (Pusat Balai Desa & Pasar)</option>
-              <option value="Dusun III">Dusun III (Bantaran Muara & Rob)</option>
-              <option value="Dusun IV">Dusun IV (Kawasan Perkebunan Sawit/Kelapa)</option>
-              <option value="Dusun V">Dusun V (Tanjung Leidong Pesisir)</option>
+              <option value="Dusun III">Dusun III (Sei Puyuh)</option>
+              <option value="Dusun IV">Dusun IV (Dusun Gori / Kebun Sawit)</option>
+              <option value="Dusun V">Dusun V (Tambak & Rawa Pasang Surut)</option>
             </select>
           </div>
         </div>
@@ -203,7 +280,7 @@ export default function ReportModal({
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Contoh: Tanggul Muara Parit Busuk Jebol Terkena Pasang Air Laut"
+            placeholder="Contoh: Tanggul Parit Sei Puyuh Jebol Dihantam Pasang Rob Air Laut"
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
           />
         </div>
@@ -217,7 +294,7 @@ export default function ReportModal({
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Jelaskan kondisi fisik kerusakan, apakah menghambat perahu nelayan, akses anak sekolah, atau memicu banjir air asin..."
+            placeholder="Jelaskan kondisi fisik kerusakan, apakah menghambat perahu nelayan, anak sekolah, atau memicu banjir air asin..."
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
           />
         </div>
@@ -230,7 +307,7 @@ export default function ReportModal({
             type="text"
             value={addressDetail}
             onChange={(e) => setAddressDetail(e.target.value)}
-            placeholder="Contoh: 100 meter di utara tangkahan ikan Dusun I"
+            placeholder="Contoh: 100 meter dari tangkahan nelayan Simandulang Pantai"
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
           />
         </div>
@@ -252,7 +329,7 @@ export default function ReportModal({
             </button>
           </div>
           <p className="text-[11px] text-slate-500 mb-2">
-            Klik pada peta untuk menancapkan pin koordinat kerusakan.
+            Klik pada peta wilayah Desa Simandulang untuk menancapkan pin koordinat kerusakan.
           </p>
           <div className="h-44 w-full rounded-lg overflow-hidden border border-slate-200">
             <DynamicMapPicker
@@ -268,18 +345,54 @@ export default function ReportModal({
           </div>
         </div>
 
-        {/* URL Foto Bukti */}
-        <div>
-          <label className="block font-semibold text-slate-700 mb-1">
-            Foto Bukti Kerusakan (URL / Kamera)
+        {/* Upload Foto Bukti Kerusakan */}
+        <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2">
+          <label className="block font-semibold text-slate-700">
+            Foto Bukti Kerusakan (Kamera / Unggah Foto)
           </label>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <label className="cursor-pointer inline-flex items-center gap-1.5 bg-white border border-slate-300 hover:bg-slate-50 px-3 py-2 rounded-lg text-slate-700 font-medium text-xs transition shadow-xs">
+              <Upload className="w-4 h-4 text-emerald-600" />
+              <span>Pilih Foto dari Galeri / Kamera</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+            <span className="text-xs text-slate-400">atau masukkan URL langsung:</span>
+          </div>
+
           <input
             type="url"
             value={photoUrl}
             onChange={(e) => setPhotoUrl(e.target.value)}
-            placeholder="https://... (atau biarkan kosong untuk foto standar)"
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
+            placeholder="https://... (atau biarkan kosong untuk gambar standar)"
+            className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-slate-900 bg-white text-xs"
           />
+
+          {photoUrl && (
+            <div className="mt-2 flex items-center gap-3 p-2 bg-white rounded-lg border border-slate-200">
+              <img
+                src={photoUrl}
+                alt="Preview Kerusakan"
+                className="w-16 h-16 object-cover rounded-md border border-slate-100"
+              />
+              <div className="text-xs">
+                <span className="font-semibold text-slate-800 flex items-center gap-1">
+                  <ImageIcon className="w-3.5 h-3.5 text-emerald-600" /> Foto Terlampir
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPhotoUrl('')}
+                  className="text-red-600 hover:underline text-[11px] mt-1"
+                >
+                  Hapus Foto
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -299,6 +412,6 @@ export default function ReportModal({
           </button>
         </div>
       </form>
-    </ModalWrapper>
+    </>
   );
 }

@@ -17,29 +17,16 @@ export default function ModalWrapper({
   maxWidth = 'max-w-xl',
   zIndex = 'z-[9999]',
 }: ModalWrapperProps) {
-  const [shouldRender, setShouldRender] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
     if (isOpen) {
-      setShouldRender(true);
-      // Double rAF ensures the initial state is painted before animating in
-      const frame1 = requestAnimationFrame(() => {
-        const frame2 = requestAnimationFrame(() => {
-          setIsAnimating(true);
-        });
-      });
-      return () => {
-        cancelAnimationFrame(frame1);
-      };
+      const timer = setTimeout(() => setMounted(true), 16);
+      return () => clearTimeout(timer);
     } else {
-      setIsAnimating(false);
-      timer = setTimeout(() => {
-        setShouldRender(false);
-      }, 260); // Durasi transisi keluar
+      const timer = setTimeout(() => setMounted(false), 200);
+      return () => clearTimeout(timer);
     }
-    return () => clearTimeout(timer);
   }, [isOpen]);
 
   // Handle ESC key press
@@ -64,13 +51,13 @@ export default function ModalWrapper({
     };
   }, [isOpen]);
 
-  if (!shouldRender) return null;
+  if (!isOpen && !mounted) return null;
 
   return (
     <div
-      className={`fixed inset-0 ${zIndex} flex items-center justify-center p-3 sm:p-4 overflow-y-auto transition-all duration-250 ${
-        isAnimating
-          ? 'bg-slate-900/60 backdrop-blur-sm opacity-100 pointer-events-auto'
+      className={`fixed inset-0 ${zIndex} flex items-center justify-center p-3 sm:p-4 overflow-y-auto transition-all duration-200 ${
+        isOpen && mounted
+          ? 'bg-slate-900/60 backdrop-blur-xs opacity-100 pointer-events-auto'
           : 'bg-slate-900/0 backdrop-blur-none opacity-0 pointer-events-none'
       }`}
       onClick={(e) => {
@@ -81,8 +68,8 @@ export default function ModalWrapper({
       }}
     >
       <div
-        className={`relative w-full ${maxWidth} bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-4 sm:my-8 transition-all duration-250 ${
-          isAnimating
+        className={`relative w-full ${maxWidth} bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-4 sm:my-8 transition-all duration-200 ${
+          isOpen && mounted
             ? 'opacity-100 scale-100 translate-y-0'
             : 'opacity-0 scale-95 translate-y-3'
         }`}

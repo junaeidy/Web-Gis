@@ -4,7 +4,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: 'usr-warga-1',
     name: 'Bahrul Efendi',
-    email: 'bahrul@telukpulai.desa.id',
+    email: 'bahrul@simandulang.desa.id',
     password: 'password123',
     phone: '081263451122',
     nik: '1223021504850001',
@@ -14,7 +14,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: 'usr-warga-2',
     name: 'Siti Rahmah',
-    email: 'siti@telukpulai.desa.id',
+    email: 'siti@simandulang.desa.id',
     password: 'password123',
     phone: '085277123490',
     nik: '1223024501930003',
@@ -24,7 +24,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: 'usr-admin-1',
     name: 'Ardiansyah, S.AP',
-    email: 'admin@telukpulai.desa.id',
+    email: 'admin@simandulang.desa.id',
     password: 'admin123',
     phone: '082167890011',
     dusun: 'Dusun II',
@@ -33,7 +33,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: 'usr-kades-1',
     name: 'H. Marzuki Ritonga',
-    email: 'kades@telukpulai.desa.id',
+    email: 'kades@simandulang.desa.id',
     password: 'kades123',
     phone: '081162345566',
     dusun: 'Dusun II',
@@ -44,143 +44,153 @@ export const MOCK_USERS: UserProfile[] = [
 export const INITIAL_REPORTS: Report[] = [
   {
     id: 'rpt-01',
-    ticketNumber: 'TPL-2026-001',
+    ticketNumber: 'SMD-2026-001',
     reporterId: 'usr-warga-1',
     reporterName: 'Bahrul Efendi',
     reporterPhone: '081263451122',
     reporterNik: '1223021504850001',
     hideReporterIdentity: true,
     supportedUserIds: ['usr-warga-1', 'usr-warga-2'],
-    upvotes: 2,
+    upvotes: 4,
     infrastructureType: 'jembatan',
-    title: 'Jembatan Kayu Sei Silo Rusak Parah & Lapuk',
-    description: 'Lantai kayu jembatan sebagian besar sudah lapuk dan patah saat air laut pasang surut. Sangat rawan dilewati sepeda motor warga pengangkut ikan dan anak sekolah.',
+    title: 'Jembatan Kayu Sei Puyuh Lapuk & Amblas Dihantam Air Pasang Rob',
+    description: 'Lantai kayu jembatan penghubung Simandulang Pantai sebagian besar sudah lapuk dan patah dihantam air pasang laut perbani. Mengancam keselamatan anak sekolah dan akses nelayan membawa hasil tangkapan ikan.',
     dusun: 'Dusun I',
-    latitude: 2.6948,
-    longitude: 99.9482,
-    addressDetail: 'Dekat Tangkahan Nelayan Dusun I, Teluk Pulai Luar',
+    latitude: 2.8385,
+    longitude: 99.9725,
+    addressDetail: 'Dekat Tangkahan Nelayan Simandulang Pantai, Dusun I',
     photoUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
     status: 'dalam_pengerjaan',
     disposition: {
       decision: 'tanggap_darurat',
-      budgetSource: 'Dana Tak Terduga (Tanggap Bencana Desa)',
-      approvedBudget: 12500000,
-      notes: 'Disetujui untuk perbaikan segera dengan kayu damar laut mengingat akses harian anak sekolah dan tangkahan nelayan.',
+      budgetSource: 'Dana Tanggap Darurat & Bencana Desa',
+      approvedBudget: 4800000,
+      notes: 'Disetujui untuk perbaikan segera dengan penggantian balok kayu damar laut mengingat akses harian anak sekolah dan jalur utama tangkahan nelayan.',
       decidedAt: '2026-11-17T09:00:00Z',
     },
     assignedOfficer: 'Tim Swakelola Dusun I (Koord: Pak Ilham)',
-    assignedDepartment: 'Seksi Kesejahteraan & Pembangunan Desa',
+    assignedDepartment: 'Seksi Kesejahteraan & Pembangunan Desa Simandulang',
     createdAt: '2026-11-15T08:30:00Z',
     updatedAt: '2026-11-17T09:00:00Z',
   },
   {
     id: 'rpt-02',
-    ticketNumber: 'TPL-2026-002',
-    reporterId: 'usr-warga-1',
-    reporterName: 'Haji Ridwan Panjaitan',
-    reporterPhone: '082167894433',
-    reporterNik: '1223021908720002',
-    hideReporterIdentity: true,
-    supportedUserIds: ['usr-warga-1'],
-    upvotes: 1,
-    infrastructureType: 'jalan_poros',
-    title: 'Jalan Poros Dusun II Amblas Tergerus Erosi Pasang Surut',
-    description: 'Jalan semen cor amblas selebar 2 meter tergerus air rob. Akses utama mobil pikap pengangkut kelapa sawit dan hasil tangkapan laut tidak bisa melintas.',
-    dusun: 'Dusun II',
-    latitude: 2.6892,
-    longitude: 99.9431,
-    addressDetail: 'Jalan Poros Utama Menuju Kantor Balai Desa',
-    photoUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80',
-    status: 'disetujui_kades',
-    disposition: {
-      decision: 'disetujui_apbdes',
-      budgetSource: 'APBDes T.A. 2026 (Bidang Pembangunan)',
-      approvedBudget: 28000000,
-      notes: 'Pemasangan cerucuk nibung dan pengecoran beton bertulang masuk prioritas RKPDes tahun berjalan.',
-      decidedAt: '2026-11-18T10:00:00Z',
-    },
-    assignedOfficer: 'Kaur Pembangunan & TPK Desa',
-    assignedDepartment: 'TPK Desa Teluk Pulai Luar',
-    createdAt: '2026-11-16T09:12:00Z',
-    updatedAt: '2026-11-18T10:00:00Z',
-  },
-  {
-    id: 'rpt-03',
-    ticketNumber: 'TPL-2026-003',
+    ticketNumber: 'SMD-2026-002',
     reporterId: 'usr-warga-2',
     reporterName: 'Siti Rahmah',
     reporterPhone: '085277123490',
     reporterNik: '1223024501930003',
     hideReporterIdentity: true,
     supportedUserIds: ['usr-warga-1', 'usr-warga-2'],
-    upvotes: 2,
+    upvotes: 3,
     infrastructureType: 'drainase_tanggul_rob',
-    title: 'Tanggul Penahan Pasang Rob Parit Busuk Telah Selesai Diperbaiki',
-    description: 'Tanggul tanah penahan rob sebelumnya jebol sepanjang 15 meter. Saat air laut pasang, puluhan rumah warga terendam.',
+    title: 'Tanggul Penahan Rob Parit Sei Nelayan Jebol Tergerus Pasang',
+    description: 'Tanggul tanah penahan air laut pasang jebol sepanjang 18 meter di muara parit. Air asin pasang perbani menggenangi permukiman puluhan kepala keluarga dan pekarangan rumah.',
     dusun: 'Dusun III',
-    latitude: 2.6985,
-    longitude: 99.9528,
-    addressDetail: 'Bantaran Muara Parit Busuk Dusun III',
+    latitude: 2.8410,
+    longitude: 99.9650,
+    addressDetail: 'Bantaran Muara Parit Sei Dusun III Simandulang',
     photoUrl: 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=800&q=80',
-    status: 'selesai',
+    status: 'disetujui_kades',
     disposition: {
-      decision: 'tanggap_darurat',
-      budgetSource: 'Dana Darurat Siaga Rob Desa',
-      approvedBudget: 4500000,
-      notes: 'Penanganan darurat segera sebelum pasang perbani laut tiba.',
-      decidedAt: '2026-11-17T15:00:00Z',
+      decision: 'disetujui_apbdes',
+      budgetSource: 'APBDes T.A. 2026 (Bidang Pembangunan)',
+      approvedBudget: 9500000,
+      notes: 'Disetujui penanganan pemasangan tanggul karung pasir bertulang kayu gelam dan penguatan cerucuk tanah.',
+      decidedAt: '2026-11-18T14:00:00Z',
     },
-    assignedOfficer: 'Satgas Tanggap Bencana Desa',
-    assignedDepartment: 'Ketentraman & Ketertiban Desa',
-    completionPhotoUrl: 'https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80',
-    completionNotes: 'Tanggul darurat berhasil ditutup rapat menggunakan 350 karung pasir bertulang kayu gelam. Air pasang rob sore sudah tidak meluap ke pekarangan sekolah.',
-    completedAt: '2026-11-19T14:30:00Z',
-    createdAt: '2026-11-17T14:20:00Z',
-    updatedAt: '2026-11-19T14:30:00Z',
+    assignedOfficer: 'Satgas Tanggap Bencana & TPK Desa',
+    assignedDepartment: 'Seksi Pembangunan Desa Simandulang',
+    createdAt: '2026-11-16T10:15:00Z',
+    updatedAt: '2026-11-18T14:00:00Z',
+  },
+  {
+    id: 'rpt-03',
+    ticketNumber: 'SMD-2026-003',
+    reporterId: 'usr-warga-1',
+    reporterName: 'Haji Ridwan Panjaitan',
+    reporterPhone: '082167894433',
+    reporterNik: '1223021908720002',
+    hideReporterIdentity: true,
+    supportedUserIds: ['usr-warga-1'],
+    upvotes: 2,
+    infrastructureType: 'jalan_poros',
+    title: 'Jalan Poros Utama Menuju Balai Desa Amblas Tergerus Erosi',
+    description: 'Badan jalan semen rabat beton amblas selebar 2,5 meter tergerus abrasi parit muara. Truk pengangkut kelapa sawit dan mobil pikap nelayan tidak dapat berpapasan.',
+    dusun: 'Dusun II',
+    latitude: 2.8335,
+    longitude: 99.9690,
+    addressDetail: 'Jalan Poros Utama Menuju Kantor Balai Desa Simandulang',
+    photoUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80',
+    status: 'terverifikasi',
+    createdAt: '2026-11-17T09:12:00Z',
+    updatedAt: '2026-11-18T11:30:00Z',
   },
   {
     id: 'rpt-04',
-    ticketNumber: 'TPL-2026-004',
-    reporterId: 'usr-warga-1',
-    reporterName: 'Khairul Amri',
-    reporterPhone: '081399887766',
-    reporterNik: '1223021102900004',
-    hideReporterIdentity: true,
-    supportedUserIds: [],
-    upvotes: 0,
-    infrastructureType: 'jalan_lingkungan',
-    title: 'Jalan Gang Melati Dusun IV Becek Berlumpur Pekat',
-    description: 'Jalan tanah gang sepanjang 100 meter belum disemen dan becek berlumpur saat hujan lebat turun, menyulitkan aktivitas warga sekitar.',
-    dusun: 'Dusun IV',
-    latitude: 2.6841,
-    longitude: 99.9395,
-    addressDetail: 'Gang Melati RT 02 Dusun IV',
-    photoUrl: 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=800&q=80',
-    status: 'terverifikasi',
-    createdAt: '2026-11-18T10:05:00Z',
-    updatedAt: '2026-11-18T16:30:00Z',
-  },
-  {
-    id: 'rpt-05',
-    ticketNumber: 'TPL-2026-005',
+    ticketNumber: 'SMD-2026-004',
     reporterId: 'usr-warga-1',
     reporterName: 'M. Yusuf Siagian',
     reporterPhone: '082211445588',
     reporterNik: '1223022207880005',
     hideReporterIdentity: true,
     supportedUserIds: ['usr-warga-2'],
-    upvotes: 1,
+    upvotes: 2,
     infrastructureType: 'dermaga_tangkahan',
-    title: 'Tiang Pancang Tangkahan Nelayan Dusun V Retak',
-    description: 'Dua tiang pancang dermaga tambatan perahu nelayan retak dan nyaris roboh dihantam ombak muara dan benturan lambung kapal boat.',
+    title: 'Tiang Pancang Tangkahan Nelayan Dusun V Rapuh Dihantam Ombak',
+    description: 'Dua tiang pancang dermaga kayu cerucuk tambatan perahu nelayan rapuh dan retak akibat hantaman ombak pasang dan benturan perahu pompong nelayan.',
     dusun: 'Dusun V',
-    latitude: 2.7020,
-    longitude: 99.9575,
-    addressDetail: 'Pangkalan Kapal Nelayan Tanjung Leidong, Dusun V',
-    photoUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
-    status: 'menunggu_verifikasi',
-    createdAt: '2026-11-19T11:40:00Z',
-    updatedAt: '2026-11-19T11:40:00Z',
+    latitude: 2.8465,
+    longitude: 99.9780,
+    addressDetail: 'Pangkalan Kapal Nelayan & Tambak Simandulang, Dusun V',
+    photoUrl: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?auto=format&fit=crop&w=800&q=80',
+    status: 'terverifikasi',
+    createdAt: '2026-11-18T11:40:00Z',
+    updatedAt: '2026-11-19T08:20:00Z',
+  },
+  {
+    id: 'rpt-05',
+    ticketNumber: 'SMD-2026-005',
+    reporterId: 'usr-warga-1',
+    reporterName: 'Khairul Amri',
+    reporterPhone: '081399887766',
+    reporterNik: '1223021102900004',
+    hideReporterIdentity: true,
+    supportedUserIds: [],
+    upvotes: 1,
+    infrastructureType: 'drainase_tanggul_rob',
+    title: 'Gorong-Gorong Pembuangan Saluran Parit Dusun IV Ambles',
+    description: 'Pipa saluran gorong-gorong semen retak dan ambles akibat beban angkutan hasil kebun dan tersumbat sedimen lumpur tanah rawa.',
+    dusun: 'Dusun IV',
+    latitude: 2.8250,
+    longitude: 99.9620,
+    addressDetail: 'Saluran Pembuangan Parit Perkebunan Dusun IV',
+    photoUrl: 'https://images.unsplash.com/photo-1590496793929-36417d3117de?auto=format&fit=crop&w=800&q=80',
+    status: 'terverifikasi',
+    createdAt: '2026-11-19T08:45:00Z',
+    updatedAt: '2026-11-19T13:10:00Z',
+  },
+  {
+    id: 'rpt-06',
+    ticketNumber: 'SMD-2026-006',
+    reporterId: 'usr-warga-2',
+    reporterName: 'Darmansyah',
+    reporterPhone: '085388221199',
+    reporterNik: '1223021803790006',
+    hideReporterIdentity: true,
+    supportedUserIds: [],
+    upvotes: 0,
+    infrastructureType: 'jalan_lingkungan',
+    title: 'Jalan Lingkungan Gang Nelayan Damai Becek Berlumpur',
+    description: 'Jalan tanah setapak pemukiman warga sepanjang 100 meter becek dan licin berlumpur saat hujan turun, dilalui sekitar 20 KK warga setempat.',
+    dusun: 'Dusun I',
+    latitude: 2.8360,
+    longitude: 99.9750,
+    addressDetail: 'Gang Damai Nelayan RT 02 Dusun I Simandulang',
+    photoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb186f5f8?auto=format&fit=crop&w=800&q=80',
+    status: 'terverifikasi',
+    createdAt: '2026-11-19T14:20:00Z',
+    updatedAt: '2026-11-20T09:00:00Z',
   },
 ];
 
@@ -188,49 +198,73 @@ export const INITIAL_EVALUATIONS: ReportEvaluation[] = [
   {
     id: 'eval-01',
     reportId: 'rpt-01',
-    c1DamageLevel: 4, // Kritis
-    c2AccessUrgency: 3, // Utama nelayan & anak sekolah
-    c3HazardRisk: 3, // Sangat rawan kecelakaan
+    c1DamageLevel: 4, // Kritis / Putus Total
+    c2AccessUrgency: 3, // Akses utama nelayan & anak sekolah
+    c3HazardRisk: 3, // Sangat rawan kecelakaan di muara
     c4Beneficiaries: 3, // >150 KK
-    c5EstimatedCost: 2, // Rp 5-15 Jt
-    verifiedCostRupiah: 12500000,
-    verificationNotes: 'Hasil verifikasi lapangan: Balok penyangga bawah sudah retak parah. Mendesak untuk diperbaiki demi keselamatan siswa sekolah dan nelayan.',
+    c5EstimatedCost: 1, // < Rp 5 Jt (Rp 4.800.000 - Cepat ditangani)
+    verifiedCostRupiah: 4800000,
+    verificationNotes: 'Hasil verifikasi lapangan: Gelagar kayu jembatan patah terbelah. Penanganan darurat kayu damar laut mendesak dieksekusi demi mobilitas anak sekolah dan nelayan.',
     verifiedAt: '2026-11-16T10:15:00Z',
   },
   {
     id: 'eval-02',
     reportId: 'rpt-02',
-    c1DamageLevel: 3, // Berat
-    c2AccessUrgency: 3, // Jalan poros utama
-    c3HazardRisk: 2, // Sedang
-    c4Beneficiaries: 3, // >150 KK
-    c5EstimatedCost: 3, // > Rp 15 Jt
-    verifiedCostRupiah: 28000000,
-    verificationNotes: 'Perlu cerucuk kayu nibung penahan erosi dan pengecoran beton bertulang sepanjang 12 meter.',
+    c1DamageLevel: 4, // Kritis / Tanggul jebol
+    c2AccessUrgency: 3, // Perlindungan permukiman utama
+    c3HazardRisk: 3, // Sangat rawan rob perbani
+    c4Beneficiaries: 2, // 50-150 KK
+    c5EstimatedCost: 2, // Rp 5-15 Jt (Rp 9.500.000)
+    verifiedCostRupiah: 9500000,
+    verificationNotes: 'Pemasangan cerucuk kayu gelam dan 400 karung pasir penahan rembesan air pasang asin laut sebelum puncak air pasang perbani.',
     verifiedAt: '2026-11-17T11:45:00Z',
   },
   {
     id: 'eval-03',
     reportId: 'rpt-03',
-    c1DamageLevel: 4, // Tanggul jebol (Kritis)
-    c2AccessUrgency: 2, // Pemukiman & sekolah
-    c3HazardRisk: 3, // Ancaman rob air asin tinggi
-    c4Beneficiaries: 2, // 50-150 KK
-    c5EstimatedCost: 1, // < Rp 5 Jt
-    verifiedCostRupiah: 4500000,
-    verificationNotes: 'Tindakan cepat darurat: Pemasangan 350 karung pasir dan kayu pancang penahan air pasang.',
-    verifiedAt: '2026-11-18T08:00:00Z',
+    c1DamageLevel: 3, // Berat
+    c2AccessUrgency: 3, // Jalan poros utama desa
+    c3HazardRisk: 2, // Sedang
+    c4Beneficiaries: 3, // >150 KK (Jalur logistik kelapa sawit & ikan)
+    c5EstimatedCost: 2, // Rp 5-15 Jt (Rp 14.500.000)
+    verifiedCostRupiah: 14500000,
+    verificationNotes: 'Perlu cerucuk kayu nibung penahan erosi tebing parit dan pengecoran rabat beton bertulang.',
+    verifiedAt: '2026-11-18T11:30:00Z',
   },
   {
     id: 'eval-04',
     reportId: 'rpt-04',
+    c1DamageLevel: 3, // Berat
+    c2AccessUrgency: 2, // Antar-dusun & pangkalan tambat
+    c3HazardRisk: 2, // Sedang
+    c4Beneficiaries: 2, // 50-150 KK
+    c5EstimatedCost: 1, // < Rp 5 Jt (Rp 4.200.000)
+    verifiedCostRupiah: 4200000,
+    verificationNotes: 'Penggantian 4 tiang pancang nibung dan balok bantalan tambatan perahu nelayan Dusun V.',
+    verifiedAt: '2026-11-19T08:20:00Z',
+  },
+  {
+    id: 'eval-05',
+    reportId: 'rpt-05',
     c1DamageLevel: 2, // Sedang
-    c2AccessUrgency: 1, // Gang lingkungan lokal
+    c2AccessUrgency: 2, // Akses kebun & parit
+    c3HazardRisk: 2, // Sedang
+    c4Beneficiaries: 1, // <50 KK
+    c5EstimatedCost: 2, // Rp 5-15 Jt (Rp 6.500.000)
+    verifiedCostRupiah: 6500000,
+    verificationNotes: 'Pemasangan gorong-gorong baru diameter 60 cm dan pembersihan sedimen lumpur parit.',
+    verifiedAt: '2026-11-19T13:10:00Z',
+  },
+  {
+    id: 'eval-06',
+    reportId: 'rpt-06',
+    c1DamageLevel: 1, // Ringan
+    c2AccessUrgency: 1, // Gang lingkungan kecil
     c3HazardRisk: 1, // Rendah
     c4Beneficiaries: 1, // <50 KK
-    c5EstimatedCost: 1, // < Rp 5 Jt
-    verifiedCostRupiah: 3000000,
-    verificationNotes: 'Rekomendasi penimbunan sirtu/batu pecah secara swadaya bersama warga RT setempat.',
-    verifiedAt: '2026-11-18T16:30:00Z',
+    c5EstimatedCost: 3, // > Rp 15 Jt (Rp 16.500.000 jika disemenisasi penuh)
+    verifiedCostRupiah: 16500000,
+    verificationNotes: 'Kondisi becek musiman. Direkomendasikan penimbunan sirtu gotong royong swadaya sebelum diusulkan semenisasi permanen.',
+    verifiedAt: '2026-11-20T09:00:00Z',
   },
 ];

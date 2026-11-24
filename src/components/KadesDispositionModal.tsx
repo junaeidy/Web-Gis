@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { KadesDecision, KadesDisposition, Report, SAWResult } from '@/types';
 import ModalWrapper from '@/components/ui/ModalWrapper';
-import { X, CheckCircle2, AlertOctagon, HelpCircle, FileCheck2, Building2 } from 'lucide-react';
+import { X, FileCheck2, Building2 } from 'lucide-react';
 
 interface KadesDispositionModalProps {
   report: Report | null;
@@ -49,7 +49,7 @@ export default function KadesDispositionModal({
           <Building2 className="w-5 h-5 text-emerald-400" />
           <div>
             <h3 className="text-base font-bold text-white">
-              Lembar Disposisi Kepala Desa Teluk Pulai Luar
+              Lembar Disposisi Kepala Desa Simandulang
             </h3>
             <p className="text-xs text-emerald-200">
               Persetujuan Tindak Lanjut Infrastruktur Berdasarkan SPK SAW

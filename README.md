@@ -1,22 +1,22 @@
-# Web-GIS & SPK Prioritas Infrastruktur Desa Teluk Pulai Luar
+# Web-GIS & SPK Prioritas Infrastruktur Desa Simandulang
 
-Sistem Informasi Geografis (GIS) dan Sistem Pendukung Keputusan (SPK) berbasis metode **Simple Additive Weighting (SAW)** untuk pelaporan, verifikasi, dan rekomendasi urutan prioritas perbaikan infrastruktur di **Desa Teluk Pulai Luar**, Kecamatan Kualuh Leidong, Kabupaten Labuhanbatu Utara.
+Sistem Informasi Geografis (GIS) dan Sistem Pendukung Keputusan (SPK) berbasis metode **Simple Additive Weighting (SAW)** untuk pelaporan, verifikasi, dan rekomendasi urutan prioritas perbaikan infrastruktur di **Desa Simandulang**, Kecamatan Kualuh Leidong, Kabupaten Labuhanbatu Utara.
 
 ---
 
 ## 🏛️ Karakteristik Wilayah & Urgensi Kasus
-Desa Teluk Pulai Luar terletak di kawasan pesisir muara Selat Malaka. Karakteristik wilayah meliputi:
-- Sebagian besar masyarakat bermata pencaharian sebagai nelayan dan petani kebun kelapa/sawit.
-- Kerentanan tinggi terhadap pasang surut air laut (rob), abrasi muara sungai, dan tanah gambut.
-- Infrastruktur seperti jembatan kayu penghubung anak sungai, tanggul penahan rob, dan jalan poros desa sering mengalami kerusakan yang membutuhkan alokasi penanganan mendesak namun anggaran desa terbatas.
+Desa Simandulang terletak di kawasan pesisir muara Selat Malaka, Kecamatan Kualuh Leidong. Karakteristik wilayah meliputi:
+- Sebagian besar masyarakat bermata pencaharian sebagai nelayan tangkap tradisional, pembudidaya tambak ikan/udang, serta petani kelapa dan sawit.
+- Kawasan perumahan panggung pesisir dengan kerentanan tinggi terhadap pasang surut air laut (banjir rob), abrasi muara sungai, dan tanah rawa/gambut.
+- Infrastruktur seperti jembatan kayu penghubung anak sungai/muara, tanggul penahan rob parit, dermaga tangkahan nelayan, dan jalan poros desa sering mengalami kerusakan mendesak yang membutuhkan skala prioritas penanganan transparan sesuai keterbatasan APBDes.
 
 ---
 
 ## 🚀 Fitur Utama Sistem
 
 1. **Peta Spasial Interaktif (GIS Leaflet):**
-   - Pemetaan titik kerusakan infrastruktur di 5 Dusun (Dusun I s/d Dusun V).
-   - Layer poligon batas administrasi Desa Teluk Pulai Luar.
+   - Pemetaan titik kerusakan infrastruktur di 5 Dusun (Dusun I Simandulang Pantai s/d Dusun V Tambak & Rawa).
+   - Layer poligon batas administrasi Desa Simandulang.
    - Penandaan warna pin interaktif sesuai status dan ranking prioritas SAW (#1 Merah, #2-#3 Oranye, #4+ Biru, Kuning untuk Menunggu Verifikasi).
 2. **Formulir Lapor Kerusakan Warga (Crowdsourcing):**
    - Geotagging otomatis melalui sensor GPS browser/perangkat pintar.

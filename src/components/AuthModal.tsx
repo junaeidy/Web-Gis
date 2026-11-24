@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Dusun, UserProfile, UserRole } from '@/types';
+import { Dusun, UserProfile } from '@/types';
 import ModalWrapper from '@/components/ui/ModalWrapper';
-import { X, LogIn, UserPlus, KeyRound, ShieldAlert, CheckCircle2, User, Phone, MapPin } from 'lucide-react';
+import { X, ShieldAlert } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,7 +18,6 @@ interface AuthModalProps {
 export default function AuthModal({
   isOpen,
   onClose,
-  currentUser,
   allUsers,
   onLoginSuccess,
   onRegisterSuccess,
@@ -36,6 +36,8 @@ export default function AuthModal({
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
 
+  const { error: toastError } = useToast();
+
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
@@ -50,7 +52,9 @@ export default function AuthModal({
     );
 
     if (!found) {
-      setErrorMsg('Email/Nomor HP atau kata sandi tidak sesuai. Silakan periksa kembali.');
+      const msg = 'Email/Nomor HP atau kata sandi tidak sesuai. Silakan periksa kembali.';
+      setErrorMsg(msg);
+      toastError('Gagal Masuk', msg);
       return;
     }
 
@@ -63,21 +67,27 @@ export default function AuthModal({
     setErrorMsg('');
 
     if (regPassword.length < 6) {
-      setErrorMsg('Kata sandi minimal 6 karakter.');
+      const msg = 'Kata sandi minimal 6 karakter.';
+      setErrorMsg(msg);
+      toastError('Pendaftaran Gagal', msg);
       return;
     }
 
     if (regPassword !== regConfirmPassword) {
-      setErrorMsg('Konfirmasi kata sandi tidak cocok.');
+      const msg = 'Konfirmasi kata sandi tidak cocok.';
+      setErrorMsg(msg);
+      toastError('Pendaftaran Gagal', msg);
       return;
     }
 
     if (regNik && regNik.length !== 16) {
-      setErrorMsg('NIK harus terdiri dari 16 digit angka sesuai KTP.');
+      const msg = 'NIK harus terdiri dari 16 digit angka sesuai KTP.';
+      setErrorMsg(msg);
+      toastError('Pendaftaran Gagal', msg);
       return;
     }
 
-    const emailGen = `${regName.toLowerCase().replace(/[^a-z0-9]/g, '')}@telukpulai.desa.id`;
+    const emailGen = `${regName.toLowerCase().replace(/[^a-z0-9]/g, '')}@simandulang.desa.id`;
     const newUser: UserProfile = {
       id: `usr-${Date.now()}`,
       name: regName,
@@ -103,7 +113,7 @@ export default function AuthModal({
             {tab === 'login' ? 'Masuk ke Sistem Smart Village' : 'Pendaftaran Akun Warga Baru'}
           </h3>
           <p className="text-[11px] text-slate-500">
-            Desa Teluk Pulai Luar • Portal Layanan Pengaduan
+            Desa Simandulang • Portal Layanan Pengaduan
           </p>
         </div>
         <button
@@ -160,7 +170,7 @@ export default function AuthModal({
               required
               value={loginEmailOrPhone}
               onChange={(e) => setLoginEmailOrPhone(e.target.value)}
-              placeholder="Contoh: bahrul@telukpulai.desa.id atau 081263451122"
+              placeholder="Contoh: bahrul@simandulang.desa.id atau 081263451122"
               className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600"
             />
           </div>
@@ -252,11 +262,11 @@ export default function AuthModal({
                 onChange={(e) => setRegDusun(e.target.value as Dusun)}
                 className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
               >
-                <option value="Dusun I">Dusun I</option>
-                <option value="Dusun II">Dusun II</option>
-                <option value="Dusun III">Dusun III</option>
-                <option value="Dusun IV">Dusun IV</option>
-                <option value="Dusun V">Dusun V</option>
+                <option value="Dusun I">Dusun I (Simandulang Pantai)</option>
+                <option value="Dusun II">Dusun II (Pusat Balai Desa)</option>
+                <option value="Dusun III">Dusun III (Sei Puyuh)</option>
+                <option value="Dusun IV">Dusun IV (Dusun Gori)</option>
+                <option value="Dusun V">Dusun V (Tambak & Rawa)</option>
               </select>
             </div>
           </div>

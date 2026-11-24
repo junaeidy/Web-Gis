@@ -1,19 +1,26 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
-  Dusun,
-  InfrastructureType,
   KadesDisposition,
   Report,
   ReportEvaluation,
-  ReportStatus,
   UserProfile,
-  UserRole,
 } from '@/types';
-import { MOCK_USERS, INITIAL_REPORTS, INITIAL_EVALUATIONS } from '@/data/mock-data';
+import { MOCK_USERS } from '@/data/mock-data';
 import { calculateSAW } from '@/lib/saw';
+import {
+  fetchReportsFromDb,
+  insertReportToDb,
+  updateReportInDb,
+  toggleSupportInDb,
+  insertEvaluationToDb,
+  fetchUsersFromDb,
+  insertUserToDb,
+  getSavedSessionUser,
+  saveSessionUser,
+} from '@/lib/data-service';
 import ReportModal from '@/components/ReportModal';
 import VerificationModal from '@/components/VerificationModal';
 import SawBreakdownModal from '@/components/SawBreakdownModal';
@@ -21,50 +28,47 @@ import ReportDetailModal from '@/components/ReportDetailModal';
 import AuthModal from '@/components/AuthModal';
 import KadesDispositionModal from '@/components/KadesDispositionModal';
 import AssignmentModal from '@/components/AssignmentModal';
+import { useToast } from '@/components/ui/Toast';
 import {
   MapPin,
   Plus,
-  ShieldCheck,
   TrendingUp,
   FileText,
-  Layers,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
   Filter,
   BarChart3,
-  ExternalLink,
-  Info,
   User,
-  Users,
-  Building2,
-  Wrench,
   ThumbsUp,
-  Check,
   Printer,
   LogIn,
   LogOut,
-  ChevronRight,
+  Database,
+  RotateCcw,
+  AlertTriangle,
+  Navigation,
 } from 'lucide-react';
 
 const DynamicMapView = dynamic(() => import('@/components/Map/MapView'), {
   ssr: false,
   loading: () => (
     <div className="h-[360px] sm:h-[460px] lg:h-[560px] w-full bg-slate-100 animate-pulse rounded-2xl flex items-center justify-center text-xs sm:text-sm text-slate-500 font-medium">
-      Memuat Peta Spasial Desa Teluk Pulai Luar...
+      Memuat Peta Spasial Desa Simandulang...
     </div>
   ),
 });
 
 export default function Home() {
-  // State User & Auth Sistem
+  const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
+
+  // State User & Auth Sistem (Default: Tidak Login / Guest)
   const [users, setUsers] = useState<UserProfile[]>(MOCK_USERS);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(MOCK_USERS[0]); // Default login sebagai Warga 1
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // State Laporan & SAW
-  const [reports, setReports] = useState<Report[]>(INITIAL_REPORTS);
-  const [evaluations, setEvaluations] = useState<ReportEvaluation[]>(INITIAL_EVALUATIONS);
+  // State Laporan & Database Supabase
+  const [reports, setReports] = useState<Report[]>([]);
+  const [evaluations, setEvaluations] = useState<ReportEvaluation[]>([]);
+  const [dbError, setDbError] = useState<string | null>(null);
+
   const [activeTab, setActiveTab] = useState<'peta' | 'saw' | 'laporan' | 'riwayat_saya' | 'monitoring'>('peta');
 
   // Filter State
@@ -81,7 +85,63 @@ export default function Home() {
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
 
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [activeRouteReport, setActiveRouteReport] = useState<Report | null>(null);
   const [pendingSupportReportId, setPendingSupportReportId] = useState<string | null>(null);
+
+  // 1. Fungsi Mengambil Data Murni dari Database Supabase
+  const loadSupabaseData = useCallback(async () => {
+    setDbError(null);
+
+    // Ambil Profil Pengguna
+    const { users: loadedUsers } = await fetchUsersFromDb();
+    setUsers(loadedUsers);
+
+    // Ambil Laporan & Evaluasi MURNI dari Supabase melalui Server API
+    const { reports: loadedReports, evaluations: loadedEvals, error: repErr } = await fetchReportsFromDb();
+    if (repErr) {
+      setDbError(repErr);
+      setReports([]);
+      setEvaluations([]);
+    } else {
+      setReports(loadedReports);
+      setEvaluations(loadedEvals);
+      setDbError(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function init() {
+      // Muat Sesi Pengguna: Hanya aktifkan jika user sebelumnya sudah pernah login
+      const savedUser = getSavedSessionUser();
+      if (!ignore) setCurrentUser(savedUser);
+
+      // Ambil Profil Pengguna
+      const { users: loadedUsers } = await fetchUsersFromDb();
+      if (!ignore) setUsers(loadedUsers);
+
+      // Ambil Laporan & Evaluasi MURNI dari Supabase
+      const { reports: loadedReports, evaluations: loadedEvals, error: repErr } = await fetchReportsFromDb();
+      if (!ignore) {
+        if (repErr) {
+          setDbError(repErr);
+          setReports([]);
+          setEvaluations([]);
+        } else {
+          setReports(loadedReports);
+          setEvaluations(loadedEvals);
+          setDbError(null);
+        }
+      }
+    }
+
+    init();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   // Status Modal Terbuka
   const isAnyModalOpen =
@@ -111,7 +171,13 @@ export default function Home() {
   // Laporan Milik Warga yang Sedang Login
   const myReports = useMemo(() => {
     if (!currentUser) return [];
-    return reports.filter((r) => r.reporterId === currentUser.id);
+    return reports.filter(
+      (r) =>
+        (r.reporterId && r.reporterId === currentUser.id) ||
+        (currentUser.phone && r.reporterPhone === currentUser.phone) ||
+        (currentUser.nik && r.reporterNik && r.reporterNik === currentUser.nik) ||
+        r.reporterName.trim().toLowerCase() === currentUser.name.trim().toLowerCase()
+    );
   }, [reports, currentUser]);
 
   // Statistik & Monitoring
@@ -127,223 +193,210 @@ export default function Home() {
     return { total, pending, verified, inProgress, completed, topPriority, totalBudget };
   }, [reports, sawResults]);
 
-  // HANDLERS AUTH
-  const handleLoginSuccess = (user: UserProfile) => {
+  // HANDLERS AUTH (Sesi Tersimpan di Browser)
+  const handleLoginSuccess = async (user: UserProfile) => {
     setCurrentUser(user);
+    saveSessionUser(user);
+    toastSuccess(
+      'Berhasil Masuk',
+      `Selamat datang kembali, ${user.name} (${user.role.toUpperCase().replace('_', ' ')})`
+    );
+
     if (pendingSupportReportId) {
       const targetId = pendingSupportReportId;
       setPendingSupportReportId(null);
-      setReports((prev) =>
-        prev.map((r) => {
-          if (r.id !== targetId) return r;
-          const currentSupportList = r.supportedUserIds || [];
-          if (currentSupportList.includes(user.id)) return r;
-          const updated = [...currentSupportList, user.id];
-          return {
-            ...r,
-            supportedUserIds: updated,
-            upvotes: updated.length,
-            updatedAt: new Date().toISOString(),
-          };
-        })
-      );
-      const targetReport = reports.find((r) => r.id === targetId);
-      if (targetReport) {
-        setSelectedReport({
-          ...targetReport,
-          supportedUserIds: [...(targetReport.supportedUserIds || []), user.id],
-          upvotes: (targetReport.upvotes || 0) + 1,
-        });
-        setIsDetailModalOpen(true);
-      }
+      await handleToggleSupport(targetId);
     }
   };
 
-  const handleRegisterSuccess = (newUser: UserProfile) => {
+  const handleRegisterSuccess = async (newUser: UserProfile) => {
     setUsers((prev) => [newUser, ...prev]);
     setCurrentUser(newUser);
+    saveSessionUser(newUser);
+    const { success: regOk, error: regErr } = await insertUserToDb(newUser);
+    if (!regOk && regErr) {
+      toastError('Sinkronisasi Akun Cloud Terkendala', regErr);
+    } else {
+      toastSuccess(
+        'Pendaftaran Berhasil!',
+        `Akun atas nama ${newUser.name} telah aktif dan siap digunakan.`
+      );
+    }
+
     if (pendingSupportReportId) {
       const targetId = pendingSupportReportId;
       setPendingSupportReportId(null);
-      setReports((prev) =>
-        prev.map((r) => {
-          if (r.id !== targetId) return r;
-          const currentSupportList = r.supportedUserIds || [];
-          const updated = [...currentSupportList, newUser.id];
-          return {
-            ...r,
-            supportedUserIds: updated,
-            upvotes: updated.length,
-            updatedAt: new Date().toISOString(),
-          };
-        })
-      );
-      const targetReport = reports.find((r) => r.id === targetId);
-      if (targetReport) {
-        setSelectedReport({
-          ...targetReport,
-          supportedUserIds: [...(targetReport.supportedUserIds || []), newUser.id],
-          upvotes: (targetReport.upvotes || 0) + 1,
-        });
-        setIsDetailModalOpen(true);
-      }
+      await handleToggleSupport(targetId);
     }
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
+    saveSessionUser(null);
+    toastInfo('Berhasil Keluar', 'Sesi akun Anda telah diakhiri.');
   };
 
-  // HANDLERS DUKUNGAN (1 ORANG 1 DUKUNGAN + BISA UNDO)
-  const handleToggleSupport = (reportId: string) => {
+  // HANDLER DUKUNGAN WARGA (UPVOTE LANGSUNG KE SUPABASE)
+  const handleToggleSupport = async (reportId: string) => {
     if (!currentUser) {
       setPendingSupportReportId(reportId);
-      setIsDetailModalOpen(false); // Tutup modal detail agar tidak bertumpuk
+      setIsDetailModalOpen(false);
       setIsAuthModalOpen(true);
+      toastInfo('Perlu Masuk Akun', 'Silakan masuk atau daftar terlebih dahulu untuk memberikan dukungan.');
       return;
     }
 
-    setReports((prev) =>
-      prev.map((r) => {
-        if (r.id !== reportId) return r;
+    const currentRep = reports.find((r) => r.id === reportId);
+    if (!currentRep) return;
 
-        const currentSupportList = r.supportedUserIds || [];
-        const alreadySupported = currentSupportList.includes(currentUser.id);
+    const alreadySupported = currentRep.supportedUserIds.includes(currentUser.id);
+    const { success, error } = await toggleSupportInDb(reportId, currentUser.id, alreadySupported);
 
-        const updatedUserIds = alreadySupported
-          ? currentSupportList.filter((id) => id !== currentUser.id)
-          : [...currentSupportList, currentUser.id];
+    if (!success) {
+      toastError('Gagal Memproses Dukungan', error || 'Terjadi kesalahan sistem.');
+      return;
+    }
 
-        const updatedReport = {
-          ...r,
-          supportedUserIds: updatedUserIds,
-          upvotes: updatedUserIds.length,
-          updatedAt: new Date().toISOString(),
-        };
+    if (alreadySupported) {
+      toastInfo('Dukungan Dibatalkan', 'Dukungan Anda terhadap laporan ini telah ditarik.');
+    } else {
+      toastSuccess(
+        'Dukungan Berhasil Ditambahkan!',
+        'Partisipasi suara Anda memperkuat urgensi perbaikan fasilitas ini.'
+      );
+    }
 
-        if (selectedReport?.id === reportId) {
-          setSelectedReport(updatedReport);
-        }
-
-        return updatedReport;
-      })
-    );
+    // Refresh data dari database
+    await loadSupabaseData();
   };
 
-  // Step 2 & 3: Warga Mengirim Laporan
-  const handleCreateReport = (
+  // Step 2 & 3: Warga Mengirim Laporan (INSERT LANGSUNG KE SUPABASE)
+  const handleCreateReport = async (
     newReportData: Omit<Report, 'id' | 'ticketNumber' | 'createdAt' | 'updatedAt' | 'status'>
   ) => {
-    const newId = `rpt-${Date.now()}`;
-    const nextNum = (reports.length + 1).toString().padStart(3, '0');
-    const newReport: Report = {
-      ...newReportData,
-      id: newId,
-      ticketNumber: `TPL-2026-${nextNum}`,
-      status: 'menunggu_verifikasi',
-      supportedUserIds: currentUser ? [currentUser.id] : [],
-      upvotes: currentUser ? 1 : 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const { report: created, error } = await insertReportToDb(newReportData);
+    if (error) {
+      toastError('Gagal Mengirim Laporan', error);
+      return;
+    }
 
-    setReports((prev) => [newReport, ...prev]);
-    setSelectedReport(newReport);
-    setActiveTab('peta');
+    if (created) {
+      toastSuccess(
+        'Laporan Berhasil Terkirim!',
+        `Tiket ${created.ticketNumber} telah tersimpan di Sistem Desa dan siap ditinjau.`
+      );
+      await loadSupabaseData();
+      setSelectedReport(created);
+      setActiveTab('peta');
+    }
   };
 
-  // Step 5 & 6: Admin Verifikasi & Skoring SAW
-  const handleVerifyReport = (evaluationData: Omit<ReportEvaluation, 'id' | 'verifiedAt'>) => {
-    const newEval: ReportEvaluation = {
-      ...evaluationData,
-      id: `eval-${Date.now()}`,
-      verifiedAt: new Date().toISOString(),
-    };
-
-    setEvaluations((prev) => [
-      ...prev.filter((e) => e.reportId !== evaluationData.reportId),
-      newEval,
-    ]);
-    setReports((prev) =>
-      prev.map((r) =>
-        r.id === evaluationData.reportId
-          ? { ...r, status: 'terverifikasi' as ReportStatus, updatedAt: new Date().toISOString() }
-          : r
-      )
+  // Step 5 & 6: Admin Verifikasi & Skoring SAW (UPSERT KE SUPABASE)
+  const handleVerifyReport = async (evaluationData: Omit<ReportEvaluation, 'id' | 'verifiedAt'>) => {
+    const { success, error } = await insertEvaluationToDb(evaluationData);
+    if (!success) {
+      toastError('Gagal Menyimpan Verifikasi', error || 'Terjadi kesalahan pada database.');
+      return;
+    }
+    toastSuccess(
+      'Laporan Berhasil Diverifikasi',
+      'Skoring kriteria SAW telah disimpan dan masuk perankingan prioritas otomatis.'
     );
+    await loadSupabaseData();
   };
 
-  // Step 5: Tandai Laporan Duplikat
-  const handleMarkDuplicate = (reportId: string, originalTicket: string) => {
-    setReports((prev) =>
-      prev.map((r) =>
-        r.id === reportId
-          ? {
-              ...r,
-              status: 'duplikat' as ReportStatus,
-              duplicateOfTicket: originalTicket,
-              updatedAt: new Date().toISOString(),
-            }
-          : r
-      )
+  // Step 5: Tandai Laporan Duplikat (UPDATE KE SUPABASE)
+  const handleMarkDuplicate = async (reportId: string, originalTicket: string) => {
+    const { success, error } = await updateReportInDb(reportId, {
+      status: 'duplikat',
+      duplicateOfTicket: originalTicket,
+    });
+    if (!success) {
+      toastError('Gagal Menandai Duplikat', error || 'Gagal memperbarui status laporan.');
+      return;
+    }
+    toastSuccess(
+      'Status Duplikat Berhasil Disimpan',
+      `Laporan ditandai sebagai duplikat dari tiket ${originalTicket}.`
     );
+    await loadSupabaseData();
   };
 
-  // Step 8: Disposisi Kepala Desa
-  const handleKadesDisposition = (disposition: KadesDisposition) => {
+  // Step 8: Disposisi Kepala Desa (UPDATE KE SUPABASE)
+  const handleKadesDisposition = async (disposition: KadesDisposition) => {
     if (!selectedReport) return;
-    setReports((prev) =>
-      prev.map((r) =>
-        r.id === selectedReport.id
-          ? {
-              ...r,
-              status: 'disetujui_kades' as ReportStatus,
-              disposition,
-              updatedAt: new Date().toISOString(),
-            }
-          : r
-      )
+    const { success, error } = await updateReportInDb(selectedReport.id, {
+      status: 'disetujui_kades',
+      disposition,
+    });
+    if (!success) {
+      toastError('Gagal Menyimpan Disposisi', error || 'Gagal menyimpan disposisi kepala desa.');
+      return;
+    }
+    toastSuccess(
+      'Disposisi Kades Berhasil Diterbitkan',
+      `Disetujui dengan alokasi anggaran Rp ${(disposition.approvedBudget || 0).toLocaleString('id-ID')}.`
     );
+    await loadSupabaseData();
   };
 
-  // Step 9: Penetapan Petugas Lapangan
-  const handleAssignOfficer = (reportId: string, officer: string, department: string) => {
-    setReports((prev) =>
-      prev.map((r) =>
-        r.id === reportId
-          ? {
-              ...r,
-              status: 'dalam_pengerjaan' as ReportStatus,
-              assignedOfficer: officer,
-              assignedDepartment: department,
-              updatedAt: new Date().toISOString(),
-            }
-          : r
-      )
+  // Step 9: Penetapan Petugas Lapangan (UPDATE KE SUPABASE)
+  const handleAssignOfficer = async (reportId: string, officer: string, department: string) => {
+    const { success, error } = await updateReportInDb(reportId, {
+      status: 'dalam_pengerjaan',
+      assignedOfficer: officer,
+      assignedDepartment: department,
+    });
+    if (!success) {
+      toastError('Gagal Menugaskan Petugas', error || 'Gagal menyimpan data penugasan.');
+      return;
+    }
+    toastSuccess(
+      'Petugas Berhasil Ditugaskan',
+      `${officer} (${department}) telah ditugaskan dan status pengerjaan aktif.`
     );
+    await loadSupabaseData();
   };
 
-  // Step 10: Unggah Dokumentasi & Tandai Selesai
-  const handleCompleteReport = (reportId: string, completionPhotoUrl: string, notes: string) => {
-    setReports((prev) =>
-      prev.map((r) =>
-        r.id === reportId
-          ? {
-              ...r,
-              status: 'selesai' as ReportStatus,
-              completionPhotoUrl,
-              completionNotes: notes,
-              completedAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }
-          : r
-      )
+  // Step 10: Unggah Dokumentasi & Tandai Selesai (UPDATE KE SUPABASE)
+  const handleCompleteReport = async (reportId: string, completionPhotoUrl: string, notes: string) => {
+    const { success, error } = await updateReportInDb(reportId, {
+      status: 'selesai',
+      completionPhotoUrl,
+      completionNotes: notes,
+      completedAt: new Date().toISOString(),
+    });
+    if (!success) {
+      toastError('Gagal Menyelesaikan Laporan', error || 'Gagal memperbarui status selesai.');
+      return;
+    }
+    toastSuccess(
+      'Pekerjaan Selesai!',
+      'Dokumentasi bukti fisik telah tersimpan dan status laporan ditandai selesai.'
     );
+    await loadSupabaseData();
   };
 
   const openDetail = (report: Report) => {
     setSelectedReport(report);
     setIsDetailModalOpen(true);
+  };
+
+  const handleNavigateRoute = (report: Report) => {
+    setActiveRouteReport(report);
+    setSelectedReport(report);
+    setActiveTab('peta');
+    setIsDetailModalOpen(false);
+  };
+
+  const handleFocusLocation = (report: Report) => {
+    setSelectedReport(report);
+    setActiveTab('peta');
+    setIsDetailModalOpen(false);
+  };
+
+  const handleClearRoute = () => {
+    setActiveRouteReport(null);
   };
 
   return (
@@ -362,7 +415,7 @@ export default function Home() {
                   Lapor & Prioritas Perbaikan Fasilitas Desa
                 </h1>
                 <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">
-                  Desa Teluk Pulai Luar • Kec. Kualuh Leidong
+                  Desa Simandulang • Kec. Kualuh Leidong
                 </p>
               </div>
             </div>
@@ -386,14 +439,11 @@ export default function Home() {
                         {currentUser.role.replace('_', ' ')}
                       </div>
                     </div>
-                    {/* <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded hidden sm:inline-block">
-                      Ganti Akun
-                    </span> */}
                   </button>
 
                   <button
                     onClick={handleLogout}
-                    title="Keluar"
+                    title="Keluar (Logout)"
                     className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition"
                   >
                     <LogOut className="w-4 h-4" />
@@ -402,7 +452,7 @@ export default function Home() {
               ) : (
                 <button
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-900 text-white rounded-lg transition"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg transition shadow-xs"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   Masuk / Daftar
@@ -418,7 +468,7 @@ export default function Home() {
                     setIsReportModalOpen(true);
                   }
                 }}
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg transition shadow-2xs"
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition shadow-2xs"
               >
                 <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span className="hidden xs:inline">Lapor</span> Kerusakan
@@ -428,7 +478,57 @@ export default function Home() {
         </div>
       </header>
 
-      {/* 2. STATISTIK MONITORING CEPAT (BAHASA AWAM & JELAS) */}
+      {/* PERINGATAN JIKA ADA KENDALA KONEKSI SUPABASE */}
+      {dbError && (
+        <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 w-full">
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <h3 className="font-bold text-amber-900 text-sm">
+                  Koneksi Basis Data Desa Memerlukan Izin Akses Schema Public
+                </h3>
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  Pesan kesalahan sistem server: <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold text-amber-950">{dbError}</code>
+                </p>
+                <p className="text-xs text-amber-700">
+                  Untuk mengaktifkannya, silakan buka <strong>Pengaturan Database &gt; SQL Editor</strong> pada cloud proyek Anda, lalu jalankan perintah berikut:
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 text-emerald-400 p-3 rounded-xl font-mono text-[11px] overflow-x-auto select-all leading-relaxed">
+              grant usage on schema public to anon, authenticated, service_role;<br />
+              grant all on all tables in schema public to anon, authenticated, service_role;<br />
+              grant all on all sequences in schema public to anon, authenticated, service_role;<br />
+              grant all on all routines in schema public to anon, authenticated, service_role;
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  toastInfo('Memeriksa Koneksi...', 'Menghubungi server basis data desa...');
+                  const { reports: r, evaluations: ev, error: err } = await fetchReportsFromDb();
+                  if (err) {
+                    setDbError(err);
+                    toastError('Koneksi Gagal', err);
+                  } else {
+                    setDbError(null);
+                    setReports(r);
+                    setEvaluations(ev);
+                    toastSuccess('Koneksi Basis Data Berhasil!', 'Sistem server desa aktif dan siap digunakan.');
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-xs font-semibold transition"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> Cek Ulang Koneksi Database Sekarang
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 2. STATISTIK MONITORING CEPAT */}
       <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 w-full">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
           <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
@@ -465,10 +565,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. TABS NAVIGASI (HORIZONTAL SCROLL DI MOBILE) */}
+      {/* 6. TABS NAVIGASI */}
       <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 pb-2 w-full">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
-          {/* Scrollable Tab Container */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none text-xs">
             <button
               onClick={() => setActiveTab('peta')}
@@ -543,7 +642,7 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Filter Wilayah */}
+          {/* Filter Wilayah & Status */}
           <div className="flex items-center gap-2 text-xs self-end md:self-auto w-full md:w-auto">
             <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <select
@@ -552,11 +651,11 @@ export default function Home() {
               className="flex-1 md:flex-initial px-2 py-1 bg-white border border-slate-200 rounded-lg text-slate-700 text-xs focus:outline-none"
             >
               <option value="all">Semua Dusun</option>
-              <option value="Dusun I">Dusun I</option>
-              <option value="Dusun II">Dusun II</option>
-              <option value="Dusun III">Dusun III</option>
-              <option value="Dusun IV">Dusun IV</option>
-              <option value="Dusun V">Dusun V</option>
+              <option value="Dusun I">Dusun I (Simandulang Pantai)</option>
+              <option value="Dusun II">Dusun II (Pusat Balai Desa)</option>
+              <option value="Dusun III">Dusun III (Sei Puyuh)</option>
+              <option value="Dusun IV">Dusun IV (Dusun Gori)</option>
+              <option value="Dusun V">Dusun V (Tambak & Rawa)</option>
             </select>
 
             <select
@@ -571,11 +670,24 @@ export default function Home() {
               <option value="drainase_tanggul_rob">Tanggul Rob</option>
               <option value="dermaga_tangkahan">Tangkahan Nelayan</option>
             </select>
+
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="flex-1 md:flex-initial px-2 py-1 bg-white border border-slate-200 rounded-lg text-slate-700 text-xs focus:outline-none"
+            >
+              <option value="all">Semua Status</option>
+              <option value="menunggu_verifikasi">Menunggu Survei</option>
+              <option value="terverifikasi">Masuk Antrean</option>
+              <option value="disetujui_kades">Disetujui Kades</option>
+              <option value="dalam_pengerjaan">Dikerjakan</option>
+              <option value="selesai">Selesai</option>
+            </select>
           </div>
         </div>
       </section>
 
-      {/* 4. MAIN CONTENT */}
+      {/* 7. MAIN CONTENT */}
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4 w-full flex-1">
         {/* TAB 1: PETA SPASIAL (GIS) */}
         {activeTab === 'peta' && (
@@ -586,6 +698,9 @@ export default function Home() {
                 sawResults={sawResults}
                 selectedReport={selectedReport}
                 onSelectReport={openDetail}
+                activeRouteReport={activeRouteReport}
+                onClearRoute={handleClearRoute}
+                onNavigateRoute={handleNavigateRoute}
                 hideLegend={isAnyModalOpen}
                 className="h-[360px] sm:h-[480px] lg:h-[560px] w-full rounded-2xl border border-slate-200 shadow-xs"
               />
@@ -599,244 +714,188 @@ export default function Home() {
                 <span className="text-[11px] text-slate-400">Pilih titik untuk zoom</span>
               </div>
 
-              <div className="overflow-y-auto divide-y divide-slate-100 flex-1 pr-1 mt-2 space-y-1">
-                {filteredReports.map((report) => {
-                  const saw = sawResults.find((s) => s.reportId === report.id);
-                  const isSelected = selectedReport?.id === report.id;
-                  const hasSupported = Boolean(
-                    currentUser && report.supportedUserIds?.includes(currentUser.id)
-                  );
+              {filteredReports.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-4 text-center text-slate-400 space-y-2">
+                  <Database className="w-8 h-8 text-slate-300" />
+                  <p className="text-xs">Belum ada data titik infrastruktur yang terdaftar.</p>
+                </div>
+              ) : (
+                <div className="overflow-y-auto space-y-2 mt-3 pr-1 divide-y divide-slate-100">
+                  {filteredReports.map((report) => {
+                    const saw = sawResults.find((s) => s.reportId === report.id);
+                    const isSelected = selectedReport?.id === report.id;
 
-                  return (
-                    <div
-                      key={report.id}
-                      onClick={() => setSelectedReport(report)}
-                      className={`p-2.5 rounded-xl cursor-pointer transition text-xs ${
-                        isSelected
-                          ? 'bg-slate-100 ring-1 ring-slate-300'
-                          : 'hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="font-mono text-[11px] text-slate-500 font-semibold">
-                          {report.ticketNumber}
-                        </span>
-                        {saw ? (
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                              saw.rank === 1
-                                ? 'bg-red-100 text-red-700'
-                                : saw.rank <= 3
-                                ? 'bg-orange-100 text-orange-700'
-                                : 'bg-sky-100 text-sky-800'
-                            }`}
-                          >
-                            Prioritas #{saw.rank}
-                          </span>
-                        ) : (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 capitalize">
-                            {report.status.replace(/_/g, ' ')}
-                          </span>
-                        )}
+                    return (
+                      <div
+                        key={report.id}
+                        onClick={() => openDetail(report)}
+                        className={`pt-2 pb-2 px-2.5 rounded-xl cursor-pointer transition flex items-start justify-between gap-3 ${
+                          isSelected
+                            ? 'bg-emerald-50/80 border border-emerald-200'
+                            : 'hover:bg-slate-50 border border-transparent'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                              {report.ticketNumber}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-medium truncate">
+                              {report.dusun}
+                            </span>
+                          </div>
+                          <h4 className="font-semibold text-xs text-slate-900 leading-snug line-clamp-1">
+                            {report.title}
+                          </h4>
+                          <div className="flex items-center gap-2 mt-1.5 text-[10px] text-slate-500">
+                            <span className="flex items-center gap-1 text-slate-700 font-medium">
+                              <ThumbsUp className="w-3 h-3 text-emerald-600" /> {report.upvotes || 0} Dukungan
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleNavigateRoute(report);
+                              }}
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-[10px] transition border border-emerald-200"
+                              title="Tampilkan rute jalan ke titik laporan ini di peta"
+                            >
+                              <Navigation className="w-2.5 h-2.5" />
+                              <span>Rute</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right">
+                          {saw ? (
+                            <div className="flex flex-col items-end">
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  saw.rank === 1
+                                    ? 'bg-red-100 text-red-700 border border-red-200'
+                                    : saw.rank <= 3
+                                    ? 'bg-orange-100 text-orange-700 border border-orange-200'
+                                    : 'bg-sky-100 text-sky-700 border border-sky-200'
+                                }`}
+                              >
+                                Prioritas #{saw.rank}
+                              </span>
+                              <span className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                                Skor: {(saw.score * 100).toFixed(0)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                              Menunggu Survei
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <h4 className="font-bold text-slate-900 leading-snug line-clamp-1">
-                        {report.title}
-                      </h4>
-                      <p className="text-slate-500 text-[11px] line-clamp-1 mt-0.5">
-                        {report.dusun} • {report.addressDetail || 'Lokasi terdata GPS'}
-                      </p>
-                      <div className="mt-2 flex items-center justify-between pt-1 border-t border-slate-100/60">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openDetail(report);
-                          }}
-                          className="text-[11px] text-sky-700 font-semibold hover:underline"
-                        >
-                          Lihat Rincian
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleSupport(report.id);
-                          }}
-                          className={`text-[11px] font-semibold px-2 py-0.5 rounded transition flex items-center gap-1 ${
-                            hasSupported
-                              ? 'bg-emerald-100 text-emerald-800 font-bold'
-                              : 'text-slate-600 hover:text-emerald-700'
-                          }`}
-                          title={hasSupported ? 'Klik untuk batalkan dukungan' : 'Dukung laporan ini'}
-                        >
-                          <ThumbsUp className={`w-3 h-3 ${hasSupported ? 'fill-current' : ''}`} />
-                          <span>{report.upvotes} {hasSupported ? 'Didukung' : 'Dukungan'}</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* TAB 2: REKOMENDASI PRIORITAS SAW */}
+        {/* TAB 2: PERANGKINGAN SAW */}
         {activeTab === 'saw' && (
           <div className="space-y-4">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                  Daftar Urutan Prioritas Perbaikan Fasilitas Desa
+                  Urutan Antrean Perbaikan Infrastruktur Desa Simandulang
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Ditentukan secara adil & objektif berdasarkan tingkat kerusakan fisik, akses utama nelayan/warga, bahaya banjir pasang rob, dan efisiensi biaya.
+                <p className="text-xs text-slate-500">
+                  Kalkulasi otomatis metode SAW berdasarkan data infrastruktur terverifikasi.
                 </p>
               </div>
               <button
                 onClick={() => setIsSawModalOpen(true)}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg transition shadow-xs shrink-0"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg transition shadow-xs self-start sm:self-auto"
               >
-                <Layers className="w-3.5 h-3.5" />
-                Lihat Transparansi & Bukti Hitungan
+                <TrendingUp className="w-3.5 h-3.5" />
+                Bukti Perhitungan Matematis SAW
               </button>
             </div>
 
-            {/* Versi Card untuk Layar Kecil / Mobile */}
-            <div className="block lg:hidden space-y-3">
-              {sawResults.map((item) => (
-                <div
-                  key={item.reportId}
-                  className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-2 text-xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full font-bold text-xs ${
-                        item.rank === 1
-                          ? 'bg-red-600 text-white'
-                          : item.rank <= 3
-                          ? 'bg-orange-600 text-white'
-                          : 'bg-slate-200 text-slate-700'
-                      }`}
-                    >
-                      Prioritas Ke-{item.rank}
-                    </span>
-                    <span className="font-mono text-slate-500 font-semibold">{item.report.ticketNumber}</span>
-                  </div>
-                  <h4 className="font-bold text-slate-900 text-sm leading-snug">{item.report.title}</h4>
-                  <div className="text-slate-500 text-[11px]">{item.report.dusun}</div>
-                  
-                  <div className="flex items-center justify-between bg-emerald-50 p-2 rounded-lg text-emerald-950">
-                    <div>
-                      <span className="text-[10px] text-slate-500 block">Kebutuhan Mendesak:</span>
-                      <strong className="text-sm font-bold text-emerald-900">{(item.score * 100).toFixed(0)} / 100</strong>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-500 block">Taksiran Biaya:</span>
-                      <span className="font-mono font-bold text-xs">Rp {item.evaluation.verifiedCostRupiah.toLocaleString('id-ID')}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-slate-500 capitalize">
-                      {item.report.disposition ? item.report.disposition.decision.replace(/_/g, ' ') : 'Menunggu Keputusan Kades'}
-                    </span>
-                    <button
-                      onClick={() => openDetail(item.report)}
-                      className="text-sky-700 font-bold hover:underline"
-                    >
-                      Rincian
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Versi Tabel untuk Layar Desktop */}
-            <div className="hidden lg:block bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-slate-900 text-white font-semibold text-[11px]">
+                  <thead className="bg-slate-100 text-slate-700 font-semibold text-[11px] border-b border-slate-200">
                     <tr>
-                      <th className="py-3 px-4">Urutan Antrean</th>
-                      <th className="py-3 px-4">Kode Tiket</th>
-                      <th className="py-3 px-4">Fasilitas Rusak & Dusun</th>
-                      <th className="py-3 px-4">Tingkat Mendesak</th>
-                      <th className="py-3 px-4">Taksiran Biaya</th>
+                      <th className="py-3 px-4">Urutan</th>
+                      <th className="py-3 px-4">No. Tiket & Judul</th>
+                      <th className="py-3 px-4">Dusun</th>
+                      <th className="py-3 px-4 text-center">Kerusakan Fisik</th>
+                      <th className="py-3 px-4 text-center">Tingkat Mendesak</th>
                       <th className="py-3 px-4">Keputusan Kepala Desa</th>
-                      <th className="py-3 px-4">Aksi</th>
+                      <th className="py-3 px-4 text-right">Rincian</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {sawResults.map((item) => (
-                      <tr
-                        key={item.reportId}
-                        className={item.rank === 1 ? 'bg-emerald-50/70 font-medium' : 'hover:bg-slate-50'}
-                      >
-                        <td className="py-3 px-4">
-                          <span
-                            className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-xs ${
-                              item.rank === 1
-                                ? 'bg-red-600 text-white shadow-xs'
-                                : item.rank === 2
-                                ? 'bg-orange-600 text-white shadow-xs'
-                                : item.rank === 3
-                                ? 'bg-amber-600 text-white'
-                                : 'bg-slate-200 text-slate-700'
-                            }`}
-                          >
-                            #{item.rank}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 font-mono text-slate-500 font-semibold">
-                          {item.report.ticketNumber}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-slate-900">{item.report.title}</div>
-                          <div className="text-[11px] text-slate-500">{item.report.dusun}</div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-emerald-900 text-sm">
-                            {(item.score * 100).toFixed(0)} <span className="text-xs text-slate-500 font-normal">/ 100</span>
-                          </div>
-                          <div className="text-[10px] text-slate-400 font-mono">
-                            Nilai hitung: {item.score.toFixed(4)}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 font-mono text-slate-900 font-semibold">
-                          Rp {item.evaluation.verifiedCostRupiah.toLocaleString('id-ID')}
-                        </td>
-                        <td className="py-3 px-4">
-                          {item.report.disposition ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 capitalize">
-                              {item.report.disposition.decision.replace(/_/g, ' ')}
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">
-                              Menunggu Keputusan Kades
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          {currentUser && currentUser.role === 'kepala_desa' && !item.report.disposition ? (
-                            <button
-                              onClick={() => {
-                                setSelectedReport(item.report);
-                                setIsDispositionModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 text-[11px] font-bold text-white bg-emerald-800 hover:bg-emerald-900 rounded-md transition"
-                            >
-                              Disposisi
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => openDetail(item.report)}
-                              className="px-2.5 py-1 text-[11px] font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-md transition"
-                            >
-                              Detail
-                            </button>
-                          )}
+                    {sawResults.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-slate-400">
+                          Belum ada laporan terverifikasi untuk masuk antrean prioritas.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      sawResults.map((item) => (
+                        <tr key={item.reportId} className="hover:bg-slate-50">
+                          <td className="py-3 px-4 font-bold text-sm">
+                            <span
+                              className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-white font-bold ${
+                                item.rank === 1
+                                  ? 'bg-red-600'
+                                  : item.rank <= 3
+                                  ? 'bg-orange-500'
+                                  : 'bg-sky-600'
+                              }`}
+                            >
+                              #{item.rank}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-mono text-[10px] text-slate-500 block font-semibold">
+                              {item.report.ticketNumber}
+                            </span>
+                            <span className="font-bold text-slate-900 line-clamp-1">
+                              {item.report.title}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-slate-600 font-medium">
+                            {item.report.dusun}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-semibold">
+                              Level {item.evaluation.c1DamageLevel}/4
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center font-bold text-emerald-900 font-mono">
+                            {(item.score * 100).toFixed(1)}%
+                          </td>
+                          <td className="py-3 px-4">
+                            {item.report.disposition ? (
+                              <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold text-[10px]">
+                                {item.report.disposition.decision.replace(/_/g, ' ').toUpperCase()}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-[11px]">Belum Ada Disposisi</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button
+                              onClick={() => openDetail(item.report)}
+                              className="text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+                            >
+                              Lihat Dokumen
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -844,7 +903,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* TAB 3: PANEL ADMIN & VERIFIKASI (STEP 5, 6, 9) */}
+        {/* TAB 3: PANEL ADMIN & VERIFIKASI */}
         {activeTab === 'laporan' && (
           <div className="space-y-4">
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -871,84 +930,56 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {reports.map((report) => (
-                      <tr key={report.id} className="hover:bg-slate-50">
-                        <td className="py-3 px-4 font-mono font-semibold text-slate-800">
-                          {report.ticketNumber}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-slate-900">{report.title}</div>
-                          <div className="text-[11px] text-slate-500">{report.dusun}</div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-medium text-slate-800">{report.reporterName}</div>
-                          <div className="text-[11px] text-slate-400 font-mono">{report.reporterPhone}</div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-semibold capitalize ${
-                              report.status === 'selesai'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : report.status === 'dalam_pengerjaan'
-                                ? 'bg-indigo-100 text-indigo-800'
-                                : report.status === 'disetujui_kades'
-                                ? 'bg-sky-100 text-sky-800'
-                                : report.status === 'terverifikasi'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : report.status === 'duplikat'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-amber-100 text-amber-800'
-                            }`}
-                          >
-                            {report.status.replace(/_/g, ' ')}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right space-x-1.5 whitespace-nowrap">
-                          <button
-                            onClick={() => openDetail(report)}
-                            className="px-2 py-1 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition"
-                          >
-                            Detail
-                          </button>
-
-                          {report.status === 'menunggu_verifikasi' && (
-                            <button
-                              onClick={() => {
-                                setSelectedReport(report);
-                                setIsVerifyModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 text-[11px] font-semibold text-white bg-sky-700 hover:bg-sky-800 rounded-md transition"
-                            >
-                              Verifikasi
-                            </button>
-                          )}
-
-                          {report.status === 'disetujui_kades' && (
-                            <button
-                              onClick={() => {
-                                setSelectedReport(report);
-                                setIsAssignmentModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 text-[11px] font-semibold text-white bg-sky-700 hover:bg-sky-800 rounded-md transition"
-                            >
-                              Tugaskan
-                            </button>
-                          )}
-
-                          {report.status === 'dalam_pengerjaan' && (
-                            <button
-                              onClick={() => {
-                                setSelectedReport(report);
-                                setIsAssignmentModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 text-[11px] font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-md transition"
-                            >
-                              Bukti Selesai
-                            </button>
-                          )}
+                    {reports.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-slate-400">
+                          Belum ada data laporan pengaduan masuk.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      reports.map((report) => (
+                        <tr key={report.id} className="hover:bg-slate-50">
+                          <td className="py-3 px-4 font-mono font-semibold text-slate-800">
+                            {report.ticketNumber}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-bold text-slate-900">{report.title}</div>
+                            <div className="text-[11px] text-slate-500">{report.dusun}</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-medium text-slate-800">{report.reporterName}</div>
+                            <div className="text-[11px] text-slate-400 font-mono">{report.reporterPhone}</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-semibold capitalize ${
+                                report.status === 'selesai'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : report.status === 'dalam_pengerjaan'
+                                  ? 'bg-indigo-100 text-indigo-800'
+                                  : report.status === 'disetujui_kades'
+                                  ? 'bg-sky-100 text-sky-800'
+                                  : report.status === 'terverifikasi'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : report.status === 'duplikat'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {report.status.replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button
+                              onClick={() => openDetail(report)}
+                              className="px-2.5 py-1 font-semibold text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                            >
+                              Periksa & Tindak Lanjut
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -956,128 +987,56 @@ export default function Home() {
           </div>
         )}
 
-        {/* TAB 4: RIWAYAT LAPORAN SAYA (STEP 11) */}
+        {/* TAB 4: LAPORAN SAYA (WARGA) */}
         {activeTab === 'riwayat_saya' && (
           <div className="space-y-4">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">
-                  Riwayat & Status Laporan Saya
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Pantau perkembangan tindak lanjut dari laporan infrastruktur Anda.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsReportModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg transition"
-              >
-                <Plus className="w-3.5 h-3.5" /> Lapor Baru
-              </button>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <h3 className="text-sm font-bold text-slate-900">
+                Laporan Kerusakan yang Anda Ajukan
+              </h3>
+              <p className="text-xs text-slate-500">
+                Pantau proses verifikasi, disposisi anggaran kepala desa, dan bukti pengerjaan tim lapangan secara langsung.
+              </p>
             </div>
 
             {myReports.length === 0 ? (
-              <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 text-slate-500">
-                <FileText className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                <p className="text-sm font-semibold">Belum ada laporan dari akun Anda.</p>
-                <p className="text-xs text-slate-400 mt-1">
-                  Kirimkan laporan kerusakan pertama Anda untuk memantau prosesnya di sini.
+              <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center space-y-3">
+                <p className="text-xs text-slate-500">
+                  {currentUser
+                    ? `Tidak ada laporan yang terdaftar atas nama ${currentUser.name}.`
+                    : 'Silakan masuk terlebih dahulu untuk melihat riwayat laporan Anda.'}
                 </p>
+                {currentUser && (
+                  <button
+                    onClick={() => setIsReportModalOpen(true)}
+                    className="px-4 py-2 bg-emerald-700 text-white rounded-lg text-xs font-semibold"
+                  >
+                    Ajukan Laporan Sekarang
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {myReports.map((report) => (
                   <div
                     key={report.id}
-                    className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-5 space-y-4"
+                    onClick={() => openDetail(report)}
+                    className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-300 cursor-pointer transition space-y-2"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded">
-                            {report.ticketNumber}
-                          </span>
-                          <span className="text-xs font-semibold text-slate-500">
-                            {report.dusun}
-                          </span>
-                        </div>
-                        <h4 className="font-bold text-sm sm:text-base text-slate-900">{report.title}</h4>
-                      </div>
-                      <span className="self-start sm:self-auto px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 capitalize">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                        {report.ticketNumber}
+                      </span>
+                      <span className="text-[11px] font-semibold text-emerald-700 capitalize">
                         {report.status.replace(/_/g, ' ')}
                       </span>
                     </div>
-
-                    {/* Progress Timeline Stepper */}
-                    <div className="py-1">
-                      <div className="grid grid-cols-5 text-center text-[9px] sm:text-[11px] font-semibold text-slate-500 gap-1">
-                        <div className="text-emerald-700">1. Diterima</div>
-                        <div className={report.status !== 'menunggu_verifikasi' ? 'text-emerald-700' : 'text-slate-400'}>
-                          2. Diverifikasi
-                        </div>
-                        <div
-                          className={
-                            ['disetujui_kades', 'dalam_pengerjaan', 'selesai'].includes(report.status)
-                              ? 'text-emerald-700'
-                              : 'text-slate-400'
-                          }
-                        >
-                          3. Disetujui
-                        </div>
-                        <div
-                          className={
-                            ['dalam_pengerjaan', 'selesai'].includes(report.status)
-                              ? 'text-emerald-700'
-                              : 'text-slate-400'
-                          }
-                        >
-                          4. Pengerjaan
-                        </div>
-                        <div className={report.status === 'selesai' ? 'text-emerald-700' : 'text-slate-400'}>
-                          5. Selesai
-                        </div>
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-100 rounded-full mt-1.5 overflow-hidden flex">
-                        <div
-                          className={`h-full bg-emerald-600 transition-all ${
-                            report.status === 'selesai'
-                              ? 'w-full'
-                              : report.status === 'dalam_pengerjaan'
-                              ? 'w-4/5'
-                              : report.status === 'disetujui_kades'
-                              ? 'w-3/5'
-                              : report.status === 'terverifikasi'
-                              ? 'w-2/5'
-                              : 'w-1/5'
-                          }`}
-                        />
-                      </div>
+                    <h4 className="font-bold text-sm text-slate-900">{report.title}</h4>
+                    <p className="text-xs text-slate-600 line-clamp-2">{report.description}</p>
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                      <span>{report.dusun}</span>
+                      <span>{new Date(report.createdAt).toLocaleDateString('id-ID')}</span>
                     </div>
-
-                    <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg">
-                      {report.description}
-                    </p>
-
-                    {/* Tampilkan Foto Sebelum & Sesudah jika Selesai */}
-                    {report.status === 'selesai' && report.completionPhotoUrl && (
-                      <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                        <div className="font-bold text-xs text-emerald-950 mb-2">
-                          Foto Bukti Hasil Pengerjaan:
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <img
-                            src={report.photoUrl}
-                            alt="Sebelum"
-                            className="h-28 sm:h-36 w-full object-cover rounded-lg border border-slate-200"
-                          />
-                          <img
-                            src={report.completionPhotoUrl}
-                            alt="Sesudah"
-                            className="h-28 sm:h-36 w-full object-cover rounded-lg border border-emerald-300"
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -1094,7 +1053,7 @@ export default function Home() {
                   Laporan Rekapitulasi & Monitoring Penanganan Infrastruktur
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Data statistik berkala untuk bahan evaluasi Musrenbangdes Desa Teluk Pulai Luar.
+                  Data statistik berkala untuk bahan evaluasi Musrenbangdes Desa Simandulang.
                 </p>
               </div>
               <button
@@ -1116,36 +1075,42 @@ export default function Home() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
                     <tr>
-                      <th className="py-2.5 px-4">Wilayah Dusun</th>
-                      <th className="py-2.5 px-4 text-center">Total</th>
-                      <th className="py-2.5 px-4 text-center">Menunggu</th>
-                      <th className="py-2.5 px-4 text-center">Pengerjaan</th>
-                      <th className="py-2.5 px-4 text-center">Selesai</th>
-                      <th className="py-2.5 px-4 text-right">Pagu Teralokasi</th>
+                      <th className="py-3 px-4">Wilayah Dusun</th>
+                      <th className="py-3 px-4 text-center">Total Laporan</th>
+                      <th className="py-3 px-4 text-center">Survei Lapangan</th>
+                      <th className="py-3 px-4 text-center">Pengerjaan</th>
+                      <th className="py-3 px-4 text-center">Selesai</th>
+                      <th className="py-3 px-4 text-right">Alokasi Anggaran</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
-                    {['Dusun I', 'Dusun II', 'Dusun III', 'Dusun IV', 'Dusun V'].map((dsn) => {
+                  <tbody className="divide-y divide-slate-100">
+                    {(['Dusun I', 'Dusun II', 'Dusun III', 'Dusun IV', 'Dusun V'] as const).map((dsn) => {
                       const dsnReports = reports.filter((r) => r.dusun === dsn);
-                      const pending = dsnReports.filter((r) => r.status === 'menunggu_verifikasi').length;
-                      const inProgress = dsnReports.filter((r) => r.status === 'dalam_pengerjaan').length;
+                      const verified = dsnReports.filter((r) => r.status === 'terverifikasi' || r.status === 'disetujui_kades').length;
+                      const inProg = dsnReports.filter((r) => r.status === 'dalam_pengerjaan').length;
                       const completed = dsnReports.filter((r) => r.status === 'selesai').length;
-                      const budget = dsnReports.reduce(
-                        (acc, curr) => acc + (curr.disposition?.approvedBudget || 0),
-                        0
-                      );
+                      const budget = dsnReports.reduce((acc, r) => acc + (r.disposition?.approvedBudget || 0), 0);
+
+                      let subName = '';
+                      if (dsn === 'Dusun I') subName = 'Simandulang Pantai';
+                      if (dsn === 'Dusun II') subName = 'Pusat Balai Desa';
+                      if (dsn === 'Dusun III') subName = 'Sei Puyuh';
+                      if (dsn === 'Dusun IV') subName = 'Dusun Gori';
+                      if (dsn === 'Dusun V') subName = 'Tambak & Rawa';
 
                       return (
-                        <tr key={dsn} className="hover:bg-slate-50 font-sans">
-                          <td className="py-3 px-4 font-bold text-slate-900">{dsn}</td>
-                          <td className="py-3 px-4 text-center font-mono font-bold text-slate-800">
+                        <tr key={dsn} className="hover:bg-slate-50">
+                          <td className="py-3 px-4 font-semibold text-slate-900">
+                            {dsn} <span className="text-slate-400 font-normal">({subName})</span>
+                          </td>
+                          <td className="py-3 px-4 text-center font-mono font-bold text-slate-700">
                             {dsnReports.length}
                           </td>
-                          <td className="py-3 px-4 text-center font-mono text-amber-700 font-semibold">
-                            {pending}
+                          <td className="py-3 px-4 text-center font-mono text-sky-700 font-semibold">
+                            {verified}
                           </td>
-                          <td className="py-3 px-4 text-center font-mono text-sky-800 font-semibold">
-                            {inProgress}
+                          <td className="py-3 px-4 text-center font-mono text-indigo-700 font-semibold">
+                            {inProg}
                           </td>
                           <td className="py-3 px-4 text-center font-mono text-emerald-800 font-bold">
                             {completed}
@@ -1164,14 +1129,14 @@ export default function Home() {
         )}
       </main>
 
-      {/* 5. FOOTER */}
+      {/* 8. FOOTER */}
       <footer className="border-t border-slate-200 bg-white py-4 mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2 text-center sm:text-left">
           <div>
             Proyek Riset Smart Village: <strong>Web-GIS & SPK Prioritas Infrastruktur</strong>
           </div>
           <div>
-            Studi Kasus: <strong>Desa Teluk Pulai Luar</strong>, Kec. Kualuh Leidong, Kab. Labuhanbatu Utara
+            Studi Kasus: <strong>Desa Simandulang</strong>, Kec. Kualuh Leidong, Kab. Labuhanbatu Utara
           </div>
         </div>
       </footer>
@@ -1234,6 +1199,8 @@ export default function Home() {
         currentUser={currentUser}
         userRole={currentUser?.role || 'warga'}
         onToggleSupport={handleToggleSupport}
+        onNavigateRoute={handleNavigateRoute}
+        onFocusLocation={handleFocusLocation}
         onOpenVerification={(rep) => {
           setSelectedReport(rep);
           setIsVerifyModalOpen(true);

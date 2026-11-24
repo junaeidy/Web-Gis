@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Criteria, SAWResult } from '@/types';
+import { SAWResult } from '@/types';
 import { DEFAULT_CRITERIA } from '@/lib/saw';
 import ModalWrapper from '@/components/ui/ModalWrapper';
-import { X, Calculator, ArrowRight } from 'lucide-react';
+import { X, Calculator } from 'lucide-react';
 
 interface SawBreakdownModalProps {
   isOpen: boolean;
@@ -28,7 +28,7 @@ export default function SawBreakdownModal({
               Transparansi & Pembuktian Matematis SAW
             </h3>
             <p className="text-xs text-slate-500">
-              Metodologi Simple Additive Weighting • Desa Teluk Pulai Luar
+              Metodologi Simple Additive Weighting • Desa Simandulang
             </p>
           </div>
         </div>

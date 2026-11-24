@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Report, ReportEvaluation } from '@/types';
 import ModalWrapper from '@/components/ui/ModalWrapper';
-import { X, CheckCircle2, ShieldCheck, Info, AlertTriangle, CopyCheck } from 'lucide-react';
+import { X, CheckCircle2, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 interface VerificationModalProps {
   report: Report | null;

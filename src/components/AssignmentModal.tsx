@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Report } from '@/types';
 import ModalWrapper from '@/components/ui/ModalWrapper';
 import { X, UserCheck, CheckCircle2, Wrench, Upload, Image as ImageIcon } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 interface AssignmentModalProps {
   report: Report | null;
@@ -20,6 +21,7 @@ export default function AssignmentModal({
   onAssignOfficer,
   onCompleteReport,
 }: AssignmentModalProps) {
+  const { error: toastError, success: toastSuccess } = useToast();
   const isAssignMode = report?.status === 'disetujui_kades';
 
   const [officer, setOfficer] = useState('Tim Swakelola Dusun & TPK Desa');
@@ -31,14 +33,37 @@ export default function AssignmentModal({
 
   if (!report) return null;
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toastError('File Terlalu Besar', 'Maksimal ukuran foto adalah 5MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      setCompletionPhotoUrl(uploadEvent.target?.result as string);
+      toastSuccess('Foto Berhasil Diunggah', 'Bukti foto penyelesaian berhasil dimuat.');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAssignSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!officer.trim() || !department.trim()) {
+      toastError('Data Belum Lengkap', 'Mohon isi nama penanggung jawab dan seksi pelaksana.');
+      return;
+    }
     onAssignOfficer(report.id, officer, department);
     onClose();
   };
 
   const handleCompleteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!completionPhotoUrl.trim()) {
+      toastError('Foto Bukti Wajib Ada', 'Silakan unggah atau masukkan link foto bukti penyelesaian.');
+      return;
+    }
     onCompleteReport(
       report.id,
       completionPhotoUrl,
@@ -130,27 +155,42 @@ export default function AssignmentModal({
         <form onSubmit={handleCompleteSubmit} className="p-6 space-y-4 text-xs">
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-700">
             <div className="font-semibold text-slate-900 mb-1">Petugas Pelaksana:</div>
-            <div className="text-slate-600">{report.assignedOfficer || 'TPK Desa Teluk Pulai Luar'}</div>
+            <div className="text-slate-600">{report.assignedOfficer || 'TPK Desa Simandulang'}</div>
           </div>
 
           <div>
             <label className="block font-semibold text-slate-800 mb-1">
               Foto Bukti Fisik Selesai (After Proof) <span className="text-red-500">*</span>
             </label>
-            <input
-              type="url"
-              required
-              value={completionPhotoUrl}
-              onChange={(e) => setCompletionPhotoUrl(e.target.value)}
-              placeholder="https://..."
-              className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
-            />
+            <div className="space-y-2">
+              <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-emerald-300 hover:border-emerald-500 rounded-xl bg-emerald-50/50 hover:bg-emerald-50 cursor-pointer transition text-emerald-800 font-medium">
+                <Upload className="w-4 h-4 text-emerald-600" />
+                <span>Pilih Foto dari Galeri / Kamera Laptop</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-400">Atau link foto:</span>
+                <input
+                  type="url"
+                  value={completionPhotoUrl}
+                  onChange={(e) => setCompletionPhotoUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="flex-1 text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg text-slate-900 bg-white"
+                />
+              </div>
+            </div>
             <span className="text-[11px] text-slate-400 mt-1 block">
               Foto akan ditampilkan bersebelahan dengan foto kerusakan awal (Before vs After) pada peta dan akun warga.
             </span>
           </div>
 
-          {completionPhotoUrl && (
+          {completionPhotoUrl ? (
             <div className="h-40 rounded-xl overflow-hidden border border-slate-200 relative bg-slate-100">
               <img
                 src={completionPhotoUrl}
@@ -160,6 +200,11 @@ export default function AssignmentModal({
               <span className="absolute bottom-2 right-2 px-2 py-0.5 bg-emerald-700 text-white rounded text-[10px] font-bold">
                 Hasil Selesai
               </span>
+            </div>
+          ) : (
+            <div className="h-28 rounded-xl border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-400 gap-1">
+              <ImageIcon className="w-6 h-6" />
+              <span>Belum ada foto yang dipilih</span>
             </div>
           )}
 

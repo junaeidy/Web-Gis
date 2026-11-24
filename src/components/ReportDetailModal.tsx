@@ -10,12 +10,13 @@ import {
   User,
   Phone,
   CheckCircle2,
-  Clock,
   ThumbsUp,
   Building2,
   Wrench,
-  Check,
-  EyeOff,
+  Navigation,
+  LocateFixed,
+  ExternalLink,
+  Shield,
 } from 'lucide-react';
 
 interface ReportDetailModalProps {
@@ -29,6 +30,8 @@ interface ReportDetailModalProps {
   onOpenVerification?: (report: Report) => void;
   onOpenDisposition?: (report: Report) => void;
   onOpenAssignment?: (report: Report) => void;
+  onNavigateRoute?: (report: Report) => void;
+  onFocusLocation?: (report: Report) => void;
 }
 
 export default function ReportDetailModal({
@@ -42,6 +45,8 @@ export default function ReportDetailModal({
   onOpenVerification,
   onOpenDisposition,
   onOpenAssignment,
+  onNavigateRoute,
+  onFocusLocation,
 }: ReportDetailModalProps) {
   if (!report) return null;
 
@@ -50,12 +55,12 @@ export default function ReportDetailModal({
   // Nama pelapor aman di publik jika privasi diaktifkan
   const displayName =
     report.hideReporterIdentity && userRole === 'warga'
-      ? `Warga ${report.dusun} (Anonim)`
+      ? `Warga ${report.dusun}`
       : report.reporterName;
 
   const displayPhone =
     report.hideReporterIdentity && userRole === 'warga'
-      ? '0812-xxxx-xxxx (Disamarkan demi privasi)'
+      ? '0812-xxxx-xxxx'
       : report.reporterPhone;
 
   return (
@@ -196,7 +201,7 @@ export default function ReportDetailModal({
             <div className="flex items-center gap-2 mb-1">
               <Building2 className="w-4 h-4 text-emerald-300" />
               <span className="font-bold text-[11px] uppercase tracking-wider text-emerald-200">
-                Disposisi Kepala Desa Teluk Pulai Luar
+                Disposisi Kepala Desa Simandulang
               </span>
             </div>
             <div className="font-bold text-xs sm:text-sm text-white">
@@ -237,29 +242,74 @@ export default function ReportDetailModal({
 
         {/* Informasi Lokasi & Privasi Pelapor */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-600 pt-2 border-t border-slate-100">
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span>
                 <strong>Lokasi:</strong> {report.dusun}
               </span>
             </div>
             {report.addressDetail && (
-              <div className="text-[11px] text-slate-500 pl-5">
+              <div className="text-[11px] text-slate-500 pl-5 leading-relaxed">
                 {report.addressDetail}
               </div>
             )}
-            <div className="text-[11px] font-mono pl-5 text-slate-400">
-              {report.latitude.toFixed(6)}, {report.longitude.toFixed(6)}
+
+            {/* Aksi Spasial / Rute GIS (Menggantikan koordinat mentah) */}
+            <div className="pl-5 pt-1 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {onNavigateRoute && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onNavigateRoute(report);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-semibold text-[11px] transition shadow-xs group"
+                    title="Kalkulasi rute jalan & jarak menuju titik kerusakan di Peta Desa"
+                  >
+                    <Navigation className="w-3.5 h-3.5 transition-transform group-hover:rotate-45" />
+                    <span>Rute ke Lokasi</span>
+                  </button>
+                )}
+
+                {onFocusLocation && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onFocusLocation(report);
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg font-medium text-[11px] transition border border-slate-200 shadow-2xs"
+                    title="Arahkan dan pusatkan kamera peta ke titik koordinat ini"
+                  >
+                    <LocateFixed className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Arahkan ke Titik</span>
+                  </button>
+                )}
+
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${report.latitude},${report.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-1.5 text-sky-700 hover:text-sky-800 hover:underline text-[11px] font-medium"
+                  title="Buka rute navigasi di Google Maps"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  <span>Google Maps</span>
+                </a>
+              </div>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>
-                <strong>Pelapor:</strong> {displayName}
-              </span>
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>
+                  <strong>Pelapor:</strong> {displayName}
+                </span>
+              </div>
             </div>
             <div className="flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />

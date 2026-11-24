@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- SISTEM INFORMASI GEOGRAFIS & SPK SAW PRIORITAS INFRASTRUKTUR DESA
--- STUDI KASUS: DESA TELUK PULAI LUAR, KEC. KUALUH LEIDONG, KAB. LABUHANBATU UTARA
+-- STUDI KASUS: DESA SIMANDULANG, KEC. KUALUH LEIDONG, KAB. LABUHANBATU UTARA
 -- Database Schema untuk Supabase (PostgreSQL 15+)
 -- Dilengkapi Migrasi Kolom Otomatis (Aman Dijalankan Berulang Kali Tanpa Error)
 -- ==============================================================================
@@ -102,6 +102,7 @@ create table if not exists public.reports (
 
   -- Disposisi Kepala Desa
   kades_decision kades_decision,
+  budget_source text,
   approved_budget numeric(14, 2) default 0,
   disposition_notes text,
   disposition_at timestamptz,
@@ -122,6 +123,7 @@ create table if not exists public.reports (
 alter table public.reports add column if not exists hide_reporter_identity boolean not null default true;
 alter table public.reports add column if not exists duplicate_of_ticket text;
 alter table public.reports add column if not exists kades_decision kades_decision;
+alter table public.reports add column if not exists budget_source text;
 alter table public.reports add column if not exists approved_budget numeric(14, 2) default 0;
 alter table public.reports add column if not exists disposition_notes text;
 alter table public.reports add column if not exists disposition_at timestamptz;
@@ -252,6 +254,20 @@ drop policy if exists "Public can view supporters" on public.report_supporters;
 
 create policy "Public can view reports" on public.reports for select using (true);
 create policy "Anyone can submit a report" on public.reports for insert with check (true);
+create policy "Anyone can update reports" on public.reports for update using (true);
 create policy "Public can view criteria" on public.saw_criteria for select using (true);
 create policy "Public can view evaluations" on public.report_evaluations for select using (true);
+create policy "Anyone can submit evaluations" on public.report_evaluations for insert with check (true);
+create policy "Anyone can update evaluations" on public.report_evaluations for update using (true);
 create policy "Public can view supporters" on public.report_supporters for select using (true);
+create policy "Anyone can manage supporters" on public.report_supporters for all using (true);
+
+-- 11. HAK AKSES PERIZINAN SCHEMA PUBLIC (MENCEGAH ERROR 42501 DI SUPABASE)
+grant usage on schema public to anon, authenticated, service_role;
+grant all on all tables in schema public to anon, authenticated, service_role;
+grant all on all sequences in schema public to anon, authenticated, service_role;
+grant all on all routines in schema public to anon, authenticated, service_role;
+
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges in schema public grant all on routines to anon, authenticated, service_role;
