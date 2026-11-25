@@ -28,6 +28,12 @@ import ReportDetailModal from '@/components/ReportDetailModal';
 import AuthModal from '@/components/AuthModal';
 import KadesDispositionModal from '@/components/KadesDispositionModal';
 import AssignmentModal from '@/components/AssignmentModal';
+import AiAssistantWidget from '@/components/AiAssistantWidget';
+import LandingPortal from '@/components/LandingPortal';
+import AdministrasiModal from '@/components/AdministrasiModal';
+import PerpajakanModal from '@/components/PerpajakanModal';
+import BansosModal from '@/components/BansosModal';
+import ProfilDesaModal from '@/components/ProfilDesaModal';
 import { useToast } from '@/components/ui/Toast';
 import {
   MapPin,
@@ -46,6 +52,8 @@ import {
   AlertTriangle,
   Navigation,
   X,
+  LayoutGrid,
+  ArrowLeft,
 } from 'lucide-react';
 
 const DynamicMapView = dynamic(() => import('@/components/Map/MapView'), {
@@ -69,6 +77,16 @@ export default function Home() {
   const [reports, setReports] = useState<Report[]>([]);
   const [evaluations, setEvaluations] = useState<ReportEvaluation[]>([]);
   const [dbError, setDbError] = useState<string | null>(null);
+
+  // Mode Tampilan Halaman: 'portal' (Landing Page seperti gambar) | 'layanan' (Dashboard Peta & Pengaduan)
+  const [viewMode, setViewMode] = useState<'portal' | 'layanan'>('portal');
+
+  // Modals Tambahan Layanan Portal Digital
+  const [isAdministrasiModalOpen, setIsAdministrasiModalOpen] = useState(false);
+  const [isPerpajakanModalOpen, setIsPerpajakanModalOpen] = useState(false);
+  const [isBansosModalOpen, setIsBansosModalOpen] = useState(false);
+  const [isProfilDesaModalOpen, setIsProfilDesaModalOpen] = useState(false);
+  const [forceOpenAi, setForceOpenAi] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'peta' | 'saw' | 'laporan' | 'riwayat_saya' | 'monitoring'>('peta');
 
@@ -306,12 +324,12 @@ export default function Home() {
   const handleVerifyReport = async (evaluationData: Omit<ReportEvaluation, 'id' | 'verifiedAt'>) => {
     const { success, error } = await insertEvaluationToDb(evaluationData);
     if (!success) {
-      toastError('Gagal Menyimpan Verifikasi', error || 'Terjadi kesalahan pada database.');
+      toastError('Gagal Menyimpan Verifikasi', error || 'Terjadi kesalahan saat menyimpan data.');
       return;
     }
     toastSuccess(
       'Laporan Berhasil Diverifikasi',
-      'Skoring kriteria SAW telah disimpan dan masuk perankingan prioritas otomatis.'
+      'Penilaian telah disimpan dan urutan prioritas telah diperbarui otomatis.'
     );
     await loadSupabaseData();
   };
@@ -417,18 +435,50 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-2">
             {/* Logo & Identitas */}
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center font-bold text-xs sm:text-sm shrink-0 shadow-2xs">
-                SIP
+            <div
+              onClick={() => setViewMode('portal')}
+              className="flex items-center gap-2.5 sm:gap-3 min-w-0 cursor-pointer group"
+              title="Kembali ke Portal Digital Desa"
+            >
+              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center font-bold text-xs sm:text-sm shrink-0 shadow-2xs group-hover:bg-emerald-900 transition">
+                SMART
               </div>
               <div className="min-w-0">
-                <h1 className="text-xs sm:text-sm md:text-base font-bold text-slate-900 tracking-tight leading-tight truncate">
-                  Lapor & Prioritas Perbaikan Fasilitas Desa
+                <h1 className="text-xs sm:text-sm md:text-base font-bold text-slate-900 tracking-tight leading-tight truncate group-hover:text-emerald-800 transition">
+                  Smart Desa Simandulang
                 </h1>
                 <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">
-                  Desa Simandulang • Kec. Kualuh Leidong
+                  Kec. Kualuh Leidong • Portal Layanan Digital Terpadu
                 </p>
               </div>
+            </div>
+
+            {/* Navigasi Switcher: Portal vs Layanan Peta */}
+            <div className="hidden sm:flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setViewMode('portal')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                  viewMode === 'portal'
+                    ? 'bg-emerald-800 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Portal Layanan</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('layanan')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                  viewMode === 'layanan'
+                    ? 'bg-emerald-800 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Peta & Pengaduan</span>
+              </button>
             </div>
 
             {/* User Profile & Action Bar */}
@@ -470,7 +520,7 @@ export default function Home() {
                 </button>
               )}
 
-              {/* Tombol Lapor */}
+              {/* Tombol Lapor / Pengaduan */}
               <button
                 onClick={() => {
                   if (!currentUser) {
@@ -479,31 +529,67 @@ export default function Home() {
                     setIsReportModalOpen(true);
                   }
                 }}
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition shadow-2xs"
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg transition shadow-2xs"
               >
                 <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline">Lapor</span> Kerusakan
+                <span className="hidden xs:inline">Buat</span> Pengaduan
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* PERINGATAN JIKA ADA KENDALA KONEKSI SUPABASE */}
-      {dbError && (
+      {/* 2. TAMPILAN LANDING PAGE UTAMA (PORTAL DIGITAL DESA SESUAI GAMBAR REFERENSI) */}
+      {viewMode === 'portal' && (
+        <main className="flex-1 flex flex-col">
+          <LandingPortal
+            onOpenAdministrasi={() => setIsAdministrasiModalOpen(true)}
+            onOpenPelayanan={() => {
+              setViewMode('layanan');
+              setActiveTab('peta');
+            }}
+            onOpenPerpajakan={() => setIsPerpajakanModalOpen(true)}
+            onOpenBansos={() => setIsBansosModalOpen(true)}
+            onOpenResepsionis={() => setForceOpenAi((prev) => !prev)}
+            onOpenProfilDesa={() => setIsProfilDesaModalOpen(true)}
+            onGoToMap={() => {
+              setViewMode('layanan');
+              setActiveTab('peta');
+            }}
+          />
+        </main>
+      )}
+
+      {/* 3. TAMPILAN DASHBOARD PETA & PENGADUAN MASYARAKAT */}
+      {viewMode === 'layanan' && (
+        <div className="flex-1 flex flex-col">
+          {/* Bar Navigasi Cepat Kembali ke Portal */}
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3.5 w-full">
+            <button
+              type="button"
+              onClick={() => setViewMode('portal')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs hover:border-emerald-600 transition"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Kembali ke Halaman Utama Portal Digital</span>
+            </button>
+          </div>
+
+          {/* PERINGATAN JIKA ADA KENDALA KONEKSI SUPABASE */}
+          {dbError && (
         <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 w-full">
           <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <h3 className="font-bold text-amber-900 text-sm">
-                  Koneksi Basis Data Desa Memerlukan Izin Akses Schema Public
+                  Sambungan Data Desa Perlu Diaktifkan
                 </h3>
                 <p className="text-xs text-amber-800 leading-relaxed">
-                  Pesan kesalahan sistem server: <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold text-amber-950">{dbError}</code>
+                  Pemberitahuan sambungan: <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold text-amber-950">{dbError}</code>
                 </p>
                 <p className="text-xs text-amber-700">
-                  Untuk mengaktifkannya, silakan buka <strong>Pengaturan Database &gt; SQL Editor</strong> pada cloud proyek Anda, lalu jalankan perintah berikut:
+                  Untuk mengaktifkan penyimpanan data desa, jalankan instruksi berikut pada pengelola pusat data:
                 </p>
               </div>
             </div>
@@ -518,21 +604,21 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <button
                 onClick={async () => {
-                  toastInfo('Memeriksa Koneksi...', 'Menghubungi server basis data desa...');
+                  toastInfo('Memeriksa Sambungan...', 'Menghubungi pusat data desa...');
                   const { reports: r, evaluations: ev, error: err } = await fetchReportsFromDb();
                   if (err) {
                     setDbError(err);
-                    toastError('Koneksi Gagal', err);
+                    toastError('Sambungan Gagal', err);
                   } else {
                     setDbError(null);
                     setReports(r);
                     setEvaluations(ev);
-                    toastSuccess('Koneksi Basis Data Berhasil!', 'Sistem server desa aktif dan siap digunakan.');
+                    toastSuccess('Sambungan Data Berhasil!', 'Pusat data desa aktif dan siap digunakan.');
                   }
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-xs font-semibold transition"
               >
-                <RotateCcw className="w-3.5 h-3.5" /> Cek Ulang Koneksi Database Sekarang
+                <RotateCcw className="w-3.5 h-3.5" /> Periksa Sambungan Data Kembali
               </button>
             </div>
           </div>
@@ -589,7 +675,7 @@ export default function Home() {
               }`}
             >
               <MapPin className="w-3.5 h-3.5" />
-              Peta Fasilitas Desa
+              Peta Sebaran Pengaduan
             </button>
 
             <button
@@ -601,7 +687,7 @@ export default function Home() {
               }`}
             >
               <TrendingUp className="w-3.5 h-3.5" />
-              Antrean Prioritas Perbaikan
+              Urutan Prioritas Penanganan
               <span className="px-1.5 py-0.2 bg-emerald-600 text-white text-[10px] rounded-full">
                 {filteredSawResults.length}
               </span>
@@ -617,7 +703,7 @@ export default function Home() {
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
-                Pemeriksaan Petugas
+                Tindak Lanjut Petugas
                 {stats.pending > 0 && (
                   <span className="px-1.5 py-0.2 bg-amber-500 text-white text-[10px] rounded-full">
                     {stats.pending}
@@ -636,7 +722,7 @@ export default function Home() {
                 }`}
               >
                 <User className="w-3.5 h-3.5" />
-                Laporan Saya ({myReports.length})
+                Pengaduan Saya ({myReports.length})
               </button>
             )}
 
@@ -683,12 +769,21 @@ export default function Home() {
               }`}
             >
               <option value="all">Semua Kategori</option>
-              <option value="jalan_poros">Jalan Poros</option>
-              <option value="jalan_lingkungan">Jalan Lingkungan</option>
-              <option value="jembatan">Jembatan</option>
-              <option value="drainase_tanggul_rob">Tanggul Rob</option>
-              <option value="dermaga_tangkahan">Tangkahan Nelayan</option>
-              <option value="fasilitas_umum">Fasilitas Umum</option>
+              <optgroup label="Infrastruktur & Lingkungan">
+                <option value="jalan_poros">Jalan Poros Utama</option>
+                <option value="jalan_lingkungan">Jalan Lingkungan / Gang</option>
+                <option value="jembatan">Jembatan Penyeberangan</option>
+                <option value="drainase_tanggul_rob">Tanggul Rob & Parit</option>
+                <option value="dermaga_tangkahan">Tangkahan Nelayan</option>
+                <option value="fasilitas_umum">Fasilitas Publik / Balai</option>
+              </optgroup>
+              <optgroup label="Pengaduan Pelayanan & Sosial">
+                <option value="kebersihan_sampah">Kebersihan & Sampah</option>
+                <option value="pelayanan_administrasi">Pelayanan Kantor Desa</option>
+                <option value="bantuan_sosial">Bantuan Sosial (BLT-DD)</option>
+                <option value="keamanan_ketertiban">Penerangan & Keamanan</option>
+                <option value="aspirasi_pembangunan">Aspirasi Pembangunan</option>
+              </optgroup>
             </select>
 
             <select
@@ -864,25 +959,27 @@ export default function Home() {
           </div>
         )}
 
-        {/* TAB 2: PERANGKINGAN SAW */}
+        {/* TAB 2: URUTAN PRIORITAS PENANGANAN */}
         {activeTab === 'saw' && (
           <div className="space-y-4">
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                  Urutan Antrean Perbaikan Infrastruktur Desa Simandulang
+                  Urutan Prioritas Penanganan Fasilitas & Pengaduan Warga
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Kalkulasi otomatis metode SAW berdasarkan data infrastruktur terverifikasi.
+                  Urutan penanganan transparan berdasarkan tingkat urgensi kerusakan dan kebutuhan masyarakat di 5 dusun.
                 </p>
               </div>
-              <button
-                onClick={() => setIsSawModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg transition shadow-xs self-start sm:self-auto"
-              >
-                <TrendingUp className="w-3.5 h-3.5" />
-                Bukti Perhitungan Matematis SAW
-              </button>
+              {currentUser && currentUser.role !== 'warga' && (
+                <button
+                  onClick={() => setIsSawModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg transition shadow-xs self-start sm:self-auto"
+                >
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  Rincian Penilaian Prioritas (Khusus Petugas)
+                </button>
+              )}
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -890,11 +987,11 @@ export default function Home() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-slate-100 text-slate-700 font-semibold text-[11px] border-b border-slate-200">
                     <tr>
-                      <th className="py-3 px-4">Urutan</th>
+                      <th className="py-3 px-4">Prioritas</th>
                       <th className="py-3 px-4">No. Tiket & Judul</th>
                       <th className="py-3 px-4">Dusun</th>
-                      <th className="py-3 px-4 text-center">Kerusakan Fisik</th>
-                      <th className="py-3 px-4 text-center">Tingkat Mendesak</th>
+                      <th className="py-3 px-4 text-center">Tingkat Kerusakan</th>
+                      <th className="py-3 px-4 text-center">Skor Urgensi</th>
                       <th className="py-3 px-4">Keputusan Kepala Desa</th>
                       <th className="py-3 px-4 text-right">Rincian</th>
                     </tr>
@@ -991,10 +1088,10 @@ export default function Home() {
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">
-                  Panel Kerja Perangkat Desa & Verifikator
+                  Ruang Kerja Perangkat Desa
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Pemeriksaan laporan, deteksi duplikasi, skoring SAW, dan penugasan tim pengerjaan.
+                  Pemeriksaan laporan warga, penetapan skala prioritas, dan penugasan tim kerja lapangan.
                 </p>
               </div>
             </div>
@@ -1008,7 +1105,7 @@ export default function Home() {
                       <th className="py-3 px-4">Judul & Dusun</th>
                       <th className="py-3 px-4">Pelapor</th>
                       <th className="py-3 px-4">Status Alur</th>
-                      <th className="py-3 px-4 text-right">Tindakan Admin</th>
+                      <th className="py-3 px-4 text-right">Tindakan Petugas</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1249,18 +1346,76 @@ export default function Home() {
           </div>
         )}
       </main>
+    </div>
+  )}
 
       {/* 8. FOOTER */}
       <footer className="border-t border-slate-200 bg-white py-4 mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2 text-center sm:text-left">
           <div>
-            Proyek Riset Smart Village: <strong>Web-GIS & SPK Prioritas Infrastruktur</strong>
+            <strong>Smart Desa:</strong> Pengembangan Layanan Digital Terintegrasi untuk Meningkatkan Akses Informasi dan Pelayanan Masyarakat
           </div>
           <div>
-            Studi Kasus: <strong>Desa Simandulang</strong>, Kec. Kualuh Leidong, Kab. Labuhanbatu Utara
+            Desa Simandulang, Kec. Kualuh Leidong, Kab. Labuhanbatu Utara • Layanan Pengaduan Terpadu & Asisten Pintar Pelayanan Desa
           </div>
         </div>
       </footer>
+
+      {/* 9. PUSAT BANTUAN INFORMASI WARGA DESA (INPUT BEBAS WARGA) */}
+      <AiAssistantWidget
+        reports={reports}
+        sawResults={sawResults}
+        isOpenExternal={forceOpenAi}
+        onOpenReportModal={() => {
+          if (!currentUser) {
+            setIsAuthModalOpen(true);
+          } else {
+            setIsReportModalOpen(true);
+          }
+        }}
+        onOpenSawModal={() => setIsSawModalOpen(true)}
+        onNavigateToTab={(tab) => {
+          setViewMode('layanan');
+          setActiveTab(tab);
+        }}
+        onSelectReport={openDetail}
+      />
+
+      {/* MODALS LAYANAN DIGITAL PORTAL DESA */}
+      <AdministrasiModal
+        isOpen={isAdministrasiModalOpen}
+        onClose={() => setIsAdministrasiModalOpen(false)}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+      />
+
+      <PerpajakanModal
+        isOpen={isPerpajakanModalOpen}
+        onClose={() => setIsPerpajakanModalOpen(false)}
+        totalAllocatedBudget={stats.totalBudget}
+      />
+
+      <BansosModal
+        isOpen={isBansosModalOpen}
+        onClose={() => setIsBansosModalOpen(false)}
+        onOpenPengaduanBansos={() => {
+          setViewMode('layanan');
+          if (!currentUser) {
+            setIsAuthModalOpen(true);
+          } else {
+            setIsReportModalOpen(true);
+          }
+        }}
+      />
+
+      <ProfilDesaModal
+        isOpen={isProfilDesaModalOpen}
+        onClose={() => setIsProfilDesaModalOpen(false)}
+        onGoToMap={() => {
+          setViewMode('layanan');
+          setActiveTab('peta');
+        }}
+      />
 
       {/* ALL MODALS */}
       <AuthModal

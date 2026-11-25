@@ -74,8 +74,8 @@ function ReportForm({
 
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setErrorMsg('Perangkat atau browser tidak mendukung fitur Geolocation.');
-      toastError('GPS Tidak Didukung', 'Browser tidak mendukung pendeteksi lokasi otomatis.');
+      setErrorMsg('Perangkat atau browser tidak mendukung pendeteksi lokasi otomatis.');
+      toastError('Lokasi Tidak Didukung', 'Perangkat tidak mendukung pendeteksi lokasi otomatis.');
       return;
     }
 
@@ -88,12 +88,12 @@ function ReportForm({
         const lng = Number(position.coords.longitude.toFixed(6));
         setCoords({ lat, lng });
         setIsGettingLocation(false);
-        toastSuccess('Koordinat Terdeteksi', `Titik GPS [${lat}, ${lng}] berhasil diambil.`);
+        toastSuccess('Lokasi Ditemukan', 'Titik lokasi Anda berhasil dicatat.');
       },
       () => {
         setIsGettingLocation(false);
-        setErrorMsg('Gagal mengambil titik GPS. Silakan tentukan titik langsung di peta.');
-        toastError('Gagal Mengambil GPS', 'Silakan pilih titik lokasi kerusakan langsung pada peta.');
+        setErrorMsg('Gagal mendeteksi lokasi otomatis. Silakan tentukan titik langsung di peta.');
+        toastError('Gagal Mengambil Lokasi', 'Silakan sentuh atau klik titik lokasi langsung pada peta.');
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -152,10 +152,10 @@ function ReportForm({
           <MapPin className="w-5 h-5 text-emerald-700" />
           <div>
             <h3 className="text-base font-bold text-slate-900">
-              Formulir Lapor Kerusakan Fasilitas Desa
+              Formulir Pengaduan & Aspirasi Masyarakat Desa
             </h3>
             <p className="text-xs text-slate-500">
-              Desa Simandulang • Akun Pelapor: <strong>{currentUser.name}</strong>
+              Desa Simandulang • Layanan Pengaduan Digital Terpadu • Akun Pelapor: <strong>{currentUser.name}</strong>
             </p>
           </div>
         </div>
@@ -238,19 +238,28 @@ function ReportForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block font-semibold text-slate-700 mb-1">
-              Kategori Infrastruktur <span className="text-red-500">*</span>
+              Kategori Pengaduan / Masalah <span className="text-red-500">*</span>
             </label>
             <select
               value={infrastructureType}
               onChange={(e) => setInfrastructureType(e.target.value as InfrastructureType)}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
             >
-              <option value="jalan_poros">Jalan Poros Utama Desa</option>
-              <option value="jalan_lingkungan">Jalan Lingkungan / Gang</option>
-              <option value="jembatan">Jembatan Kayu / Beton</option>
-              <option value="drainase_tanggul_rob">Tanggul Penahan Rob / Drainase</option>
-              <option value="dermaga_tangkahan">Dermaga / Tangkahan Nelayan</option>
-              <option value="fasilitas_umum">Fasilitas Umum Lainnya</option>
+              <optgroup label="Fasilitas & Infrastruktur Fisik">
+                <option value="jalan_poros">Jalan Poros Utama Desa</option>
+                <option value="jalan_lingkungan">Jalan Lingkungan / Gang</option>
+                <option value="jembatan">Jembatan Kayu / Beton</option>
+                <option value="drainase_tanggul_rob">Tanggul Penahan Rob / Saluran Air</option>
+                <option value="dermaga_tangkahan">Dermaga / Tangkahan Nelayan</option>
+                <option value="fasilitas_umum">Fasilitas Publik / Balai Warga</option>
+              </optgroup>
+              <optgroup label="Kebersihan, Pelayanan & Sosial">
+                <option value="kebersihan_sampah">Kebersihan Lingkungan & Sampah</option>
+                <option value="pelayanan_administrasi">Pelayanan Kantor Balai Desa</option>
+                <option value="bantuan_sosial">Bantuan Sosial (Bansos / BLT)</option>
+                <option value="keamanan_ketertiban">Penerangan Jalan & Ketertiban</option>
+                <option value="aspirasi_pembangunan">Aspirasi & Usulan Pembangunan</option>
+              </optgroup>
             </select>
           </div>
           <div>
@@ -273,28 +282,28 @@ function ReportForm({
 
         <div>
           <label className="block font-semibold text-slate-700 mb-1">
-            Judul Kerusakan <span className="text-red-500">*</span>
+            Judul Pengaduan / Keluhan <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Contoh: Tanggul Parit Sei Puyuh Jebol Dihantam Pasang Rob Air Laut"
+            placeholder="Contoh: Tumpukan sampah liar di muara / Jembatan Sei Puyuh lapuk / Keterlambatan pelayanan"
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
           />
         </div>
 
         <div>
           <label className="block font-semibold text-slate-700 mb-1">
-            Deskripsi Kerusakan & Dampak Terhadap Warga <span className="text-red-500">*</span>
+            Deskripsi Pengaduan & Dampak Terhadap Warga <span className="text-red-500">*</span>
           </label>
           <textarea
             required
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Jelaskan kondisi fisik kerusakan, apakah menghambat perahu nelayan, anak sekolah, atau memicu banjir air asin..."
+            placeholder="Jelaskan rincian keluhan, lokasi kejadian, dampak bagi masyarakat luas, atau usulan solusi..."
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900"
           />
         </div>
@@ -312,11 +321,11 @@ function ReportForm({
           />
         </div>
 
-        {/* Pemilihan Titik Spasial GIS */}
+        {/* Pemilihan Titik Lokasi Pada Peta */}
         <div className="border border-slate-200 rounded-xl p-3 bg-slate-50">
           <div className="flex items-center justify-between mb-2">
             <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-emerald-700" /> Tentukan Titik Kerusakan di Peta GIS
+              <MapPin className="w-4 h-4 text-emerald-700" /> Tentukan Titik Lokasi di Peta
             </span>
             <button
               type="button"
@@ -325,11 +334,11 @@ function ReportForm({
               className="inline-flex items-center gap-1 text-[11px] font-medium bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1 rounded-md transition shadow-xs disabled:opacity-50"
             >
               <Navigation className="w-3 h-3" />
-              {isGettingLocation ? 'Mencari Titik GPS...' : 'Gunakan GPS HP'}
+              {isGettingLocation ? 'Mencari Lokasi...' : 'Lokasi Saya'}
             </button>
           </div>
           <p className="text-[11px] text-slate-500 mb-2">
-            Klik pada peta wilayah Desa Simandulang untuk menancapkan pin koordinat kerusakan.
+            Sentuh atau klik pada peta Desa Simandulang untuk menandai lokasi kejadian.
           </p>
           <div className="h-44 w-full rounded-lg overflow-hidden border border-slate-200">
             <DynamicMapPicker
@@ -339,9 +348,11 @@ function ReportForm({
               className="h-full w-full"
             />
           </div>
-          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-600 font-mono bg-white px-2.5 py-1 rounded border border-slate-200">
-            <span>Lat: {coords.lat.toFixed(6)}</span>
-            <span>Lng: {coords.lng.toFixed(6)}</span>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-600 bg-white px-2.5 py-1 rounded border border-slate-200">
+            <span className="text-emerald-800 font-medium flex items-center gap-1">
+              <MapPin className="w-3 h-3 text-emerald-600" /> Titik Lokasi Terpilih
+            </span>
+            <span className="font-mono text-slate-400 text-[10px]">({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)})</span>
           </div>
         </div>
 

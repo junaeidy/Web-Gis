@@ -182,8 +182,7 @@ export default function ReportDetailModal({
                 Prioritas Ke-{saw.rank}
               </div>
               <div className="text-[11px] text-emerald-800 mt-0.5">
-                Tingkat Kebutuhan Mendesak: <strong>{(saw.score * 100).toFixed(0)} dari 100</strong>{' '}
-                <span className="text-slate-400 font-mono text-[10px]">({saw.score.toFixed(4)})</span>
+                Tingkat Kebutuhan Mendesak: <strong>{(saw.score * 100).toFixed(0)}%</strong>
               </div>
             </div>
             <div className="text-right">

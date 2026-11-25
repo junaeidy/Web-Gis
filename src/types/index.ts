@@ -1,10 +1,17 @@
-export type InfrastructureType =
+export type ComplaintCategory =
   | 'jalan_poros'
   | 'jalan_lingkungan'
   | 'jembatan'
   | 'drainase_tanggul_rob'
   | 'dermaga_tangkahan'
-  | 'fasilitas_umum';
+  | 'fasilitas_umum'
+  | 'kebersihan_sampah'
+  | 'pelayanan_administrasi'
+  | 'bantuan_sosial'
+  | 'keamanan_ketertiban'
+  | 'aspirasi_pembangunan';
+
+export type InfrastructureType = ComplaintCategory;
 
 export type ReportStatus =
   | 'menunggu_verifikasi'

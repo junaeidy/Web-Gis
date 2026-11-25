@@ -153,7 +153,7 @@ export default function MapView({
   // Request GPS pengguna
   const handleRequestGps = useCallback(() => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
-      setGpsError('Browser tidak mendukung pendeteksi GPS.');
+      setGpsError('Perangkat atau browser tidak mendukung pendeteksi lokasi.');
       return;
     }
     setIsLocatingGps(true);
@@ -167,7 +167,7 @@ export default function MapView({
       },
       (err) => {
         setIsLocatingGps(false);
-        setGpsError('Izin GPS ditolak atau tidak tersedia. Memakai Balai Desa.');
+        setGpsError('Izin lokasi belum aktif. Menggunakan Balai Desa sebagai titik awal.');
         setOriginType('village_hall');
       },
       { enableHighAccuracy: true, timeout: 8000 }
@@ -422,13 +422,14 @@ export default function MapView({
             Pelapor: ${report.hideReporterIdentity ? `Warga ${report.dusun} (Anonim)` : report.reporterName}
           </div>
 
-          <!-- Tombol Aksi Spasial / Rute GIS dalam Popup -->
+          <!-- Tombol Petunjuk Arah dalam Popup -->
           <button
             type="button"
             id="btn-popup-route-${report.id}"
             class="w-full py-1.5 px-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1.5 shadow-2xs"
           >
-            🧭 Tampilkan Rute GIS
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+            Petunjuk Arah Jalan
           </button>
         </div>
       `;
@@ -500,7 +501,7 @@ export default function MapView({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
               </span>
-              <span>Rute Navigasi GIS Desa</span>
+              <span>Panduan Arah Menuju Lokasi</span>
             </div>
             {onClearRoute && (
               <button
@@ -562,7 +563,7 @@ export default function MapView({
                     : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                 }`}
               >
-                🏢 Balai Desa
+                Balai Desa
               </button>
               <button
                 type="button"
@@ -574,7 +575,7 @@ export default function MapView({
                     : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                 }`}
               >
-                {isLocatingGps ? 'Mencari GPS...' : '📱 Lokasi GPS'}
+                {isLocatingGps ? 'Mencari Lokasi...' : 'Lokasi Saya'}
               </button>
             </div>
             {gpsError && (
@@ -590,7 +591,7 @@ export default function MapView({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 hover:text-sky-800 hover:underline"
             >
-              <span>🧭 Buka di Google Maps</span>
+              <span>Buka di Google Maps</span>
               <span>↗</span>
             </a>
             {onClearRoute && (

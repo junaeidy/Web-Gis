@@ -4,7 +4,7 @@ import React from 'react';
 import { SAWResult } from '@/types';
 import { DEFAULT_CRITERIA } from '@/lib/saw';
 import ModalWrapper from '@/components/ui/ModalWrapper';
-import { X, Calculator } from 'lucide-react';
+import { X, Calculator, HelpCircle } from 'lucide-react';
 
 interface SawBreakdownModalProps {
   isOpen: boolean;
@@ -25,10 +25,10 @@ export default function SawBreakdownModal({
           <Calculator className="w-5 h-5 text-indigo-700" />
           <div>
             <h3 className="text-base font-bold text-slate-900">
-              Transparansi & Pembuktian Matematis SAW
+              Transparansi Penilaian Prioritas Desa
             </h3>
             <p className="text-xs text-slate-500">
-              Metodologi Simple Additive Weighting • Desa Simandulang
+              Urutan Kepentingan Penanganan Lapangan • Desa Simandulang
             </p>
           </div>
         </div>
@@ -45,7 +45,7 @@ export default function SawBreakdownModal({
         {/* Penjelasan Awam Ramah Warga */}
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5">
           <div className="font-bold text-sm text-emerald-950 flex items-center gap-1.5">
-            <span>💡</span> Penjelasan Sederhana untuk Warga & Aparatur Desa:
+            <HelpCircle className="w-4 h-4 text-emerald-700 shrink-0" /> Penjelasan Penilaian Objektif Desa:
           </div>
           <p className="text-emerald-900 leading-relaxed text-xs">
             Sistem ini menentukan antrean perbaikan fasilitas desa secara <strong>terbuka, adil, dan objektif</strong> tanpa unsur pilih kasih. Titik yang didahulukan adalah titik yang kerusakannya paling parah (30%), berada di jalan utama atau dermaga nelayan (25%), rawan terendam banjir pasang rob (20%), paling banyak dilalui keluarga warga (15%), serta efisien anggarannya (10%).
@@ -55,7 +55,7 @@ export default function SawBreakdownModal({
         {/* 1. Bobot Kriteria */}
         <div>
           <h4 className="font-bold text-sm text-slate-900 mb-2">
-            1. Aturan Penilaian & Pembobotan Adil
+            1. Pedoman Penilaian & Pembobotan Adil
           </h4>
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-left border-collapse">
@@ -93,16 +93,16 @@ export default function SawBreakdownModal({
           </div>
         </div>
 
-        {/* 2. Matriks Keputusan Awal (X) */}
+        {/* 2. Nilai Hasil Pengamatan Lapangan */}
         <div>
           <h4 className="font-bold text-sm text-slate-900 mb-2">
-            2. Matriks Keputusan Awal (X)
+            2. Nilai Hasil Pengamatan Lapangan
           </h4>
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-left border-collapse font-mono text-[11px]">
               <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
                 <tr>
-                  <th className="py-2 px-3 font-sans">Alternatif (Laporan)</th>
+                  <th className="py-2 px-3 font-sans">Laporan Warga</th>
                   <th className="py-2 px-3">C1 (Kerusakan)</th>
                   <th className="py-2 px-3">C2 (Akses)</th>
                   <th className="py-2 px-3">C3 (Rob/Bahaya)</th>
@@ -129,21 +129,21 @@ export default function SawBreakdownModal({
           </div>
         </div>
 
-        {/* 3. Matriks Normalisasi (R) */}
+        {/* 3. Penyesuaian Nilai Standar */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <h4 className="font-bold text-sm text-slate-900">
-              3. Matriks Normalisasi (R)
+              3. Penyesuaian Nilai Standar
             </h4>
             <span className="text-[11px] text-slate-500 italic">
-              Formula: Benefit = X_ij / Max(X_j) | Cost = Min(X_j) / X_ij
+              Perbandingan adil antar-kondisi laporan
             </span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-left border-collapse font-mono text-[11px]">
               <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
                 <tr>
-                  <th className="py-2 px-3 font-sans">Alternatif</th>
+                  <th className="py-2 px-3 font-sans">Laporan</th>
                   <th className="py-2 px-3">R1 (C1)</th>
                   <th className="py-2 px-3">R2 (C2)</th>
                   <th className="py-2 px-3">R3 (C3)</th>
@@ -167,14 +167,14 @@ export default function SawBreakdownModal({
           </div>
         </div>
 
-        {/* 4. Nilai Preferensi (V) & Perangkingan Akhir */}
+        {/* 4. Hasil Akhir Urutan Prioritas Penanganan */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <h4 className="font-bold text-sm text-slate-900">
-              4. Nilai Preferensi (V) & Urutan Rekomendasi Prioritas
+              4. Hasil Akhir Urutan Prioritas Penanganan
             </h4>
             <span className="text-[11px] text-slate-500 italic">
-              V_i = (0.30·R1) + (0.25·R2) + (0.20·R3) + (0.15·R4) + (0.10·R5)
+              Perhitungan total urgensi dan skala prioritas
             </span>
           </div>
           <div className="overflow-x-auto rounded-lg border border-slate-200">
@@ -184,7 +184,7 @@ export default function SawBreakdownModal({
                   <th className="py-2.5 px-3">Rank</th>
                   <th className="py-2.5 px-3">Tiket</th>
                   <th className="py-2.5 px-3">Nama Infrastruktur & Dusun</th>
-                  <th className="py-2.5 px-3 font-mono">Skor Preferensi (V)</th>
+                  <th className="py-2.5 px-3 font-mono">Skor Prioritas</th>
                   <th className="py-2.5 px-3 font-sans">Estimasi Biaya</th>
                   <th className="py-2.5 px-3">Status</th>
                 </tr>
@@ -241,13 +241,13 @@ export default function SawBreakdownModal({
       {/* Footer */}
       <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100 bg-slate-50">
         <div className="text-[11px] text-slate-500">
-          Perhitungan ini 100% transparan dan dapat dibuktikan dalam ujian/laporan riset.
+          Penetapan prioritas dilakukan secara terbuka dan adil demi kepentingan bersama seluruh masyarakat.
         </div>
         <button
           onClick={onClose}
           className="px-4 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-900 text-white rounded-lg transition shadow-xs"
         >
-          Tutup Pembuktian
+          Tutup Rincian
         </button>
       </div>
     </ModalWrapper>

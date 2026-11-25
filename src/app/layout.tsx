@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SIP-DESA Simandulang - Layanan Lapor & Pantau Perbaikan Fasilitas Desa",
+  title: "Smart Desa Simandulang - Layanan Digital Terintegrasi & Akses Informasi Masyarakat",
   description:
-    "Peta digital dan penentuan urutan perbaikan jalan, jembatan, dan tanggul secara adil dan transparan bagi warga Desa Simandulang, Kec. Kualuh Leidong, Kab. Labuhanbatu Utara.",
+    "Smart Desa: Pengembangan Layanan Digital Terintegrasi untuk Meningkatkan Akses Informasi dan Pelayanan Masyarakat. Dilengkapi Peta Interaktif Desa, Urutan Prioritas Penanganan, dan Pusat Bantuan Warga Desa Simandulang.",
 };
 
 export default function RootLayout({
