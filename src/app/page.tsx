@@ -45,6 +45,7 @@ import {
   RotateCcw,
   AlertTriangle,
   Navigation,
+  X,
 } from 'lucide-react';
 
 const DynamicMapView = dynamic(() => import('@/components/Map/MapView'), {
@@ -167,6 +168,16 @@ export default function Home() {
       return matchDusun && matchType && matchStatus;
     });
   }, [reports, selectedDusun, selectedType, selectedStatus]);
+
+  // Filter Hasil Perangkingan SAW
+  const filteredSawResults = useMemo(() => {
+    return sawResults.filter((s) => {
+      const matchDusun = selectedDusun === 'all' || s.report.dusun === selectedDusun;
+      const matchType = selectedType === 'all' || s.report.infrastructureType === selectedType;
+      const matchStatus = selectedStatus === 'all' || s.report.status === selectedStatus;
+      return matchDusun && matchType && matchStatus;
+    });
+  }, [sawResults, selectedDusun, selectedType, selectedStatus]);
 
   // Laporan Milik Warga yang Sedang Login
   const myReports = useMemo(() => {
@@ -592,7 +603,7 @@ export default function Home() {
               <TrendingUp className="w-3.5 h-3.5" />
               Antrean Prioritas Perbaikan
               <span className="px-1.5 py-0.2 bg-emerald-600 text-white text-[10px] rounded-full">
-                {sawResults.length}
+                {filteredSawResults.length}
               </span>
             </button>
 
@@ -643,12 +654,16 @@ export default function Home() {
           </div>
 
           {/* Filter Wilayah & Status */}
-          <div className="flex items-center gap-2 text-xs self-end md:self-auto w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-2 text-xs self-end md:self-auto w-full md:w-auto">
             <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <select
               value={selectedDusun}
               onChange={(e) => setSelectedDusun(e.target.value)}
-              className="flex-1 md:flex-initial px-2 py-1 bg-white border border-slate-200 rounded-lg text-slate-700 text-xs focus:outline-none"
+              className={`flex-1 md:flex-initial px-2 py-1 bg-white border rounded-lg text-xs focus:outline-none transition ${
+                selectedDusun !== 'all'
+                  ? 'border-emerald-600 font-semibold text-emerald-950 bg-emerald-50/50'
+                  : 'border-slate-200 text-slate-700'
+              }`}
             >
               <option value="all">Semua Dusun</option>
               <option value="Dusun I">Dusun I (Simandulang Pantai)</option>
@@ -661,7 +676,11 @@ export default function Home() {
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="flex-1 md:flex-initial px-2 py-1 bg-white border border-slate-200 rounded-lg text-slate-700 text-xs focus:outline-none"
+              className={`flex-1 md:flex-initial px-2 py-1 bg-white border rounded-lg text-xs focus:outline-none transition ${
+                selectedType !== 'all'
+                  ? 'border-emerald-600 font-semibold text-emerald-950 bg-emerald-50/50'
+                  : 'border-slate-200 text-slate-700'
+              }`}
             >
               <option value="all">Semua Kategori</option>
               <option value="jalan_poros">Jalan Poros</option>
@@ -669,12 +688,17 @@ export default function Home() {
               <option value="jembatan">Jembatan</option>
               <option value="drainase_tanggul_rob">Tanggul Rob</option>
               <option value="dermaga_tangkahan">Tangkahan Nelayan</option>
+              <option value="fasilitas_umum">Fasilitas Umum</option>
             </select>
 
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="flex-1 md:flex-initial px-2 py-1 bg-white border border-slate-200 rounded-lg text-slate-700 text-xs focus:outline-none"
+              className={`flex-1 md:flex-initial px-2 py-1 bg-white border rounded-lg text-xs focus:outline-none transition ${
+                selectedStatus !== 'all'
+                  ? 'border-emerald-600 font-semibold text-emerald-950 bg-emerald-50/50'
+                  : 'border-slate-200 text-slate-700'
+              }`}
             >
               <option value="all">Semua Status</option>
               <option value="menunggu_verifikasi">Menunggu Survei</option>
@@ -682,7 +706,24 @@ export default function Home() {
               <option value="disetujui_kades">Disetujui Kades</option>
               <option value="dalam_pengerjaan">Dikerjakan</option>
               <option value="selesai">Selesai</option>
+              <option value="duplikat">Laporan Duplikat</option>
             </select>
+
+            {(selectedDusun !== 'all' || selectedType !== 'all' || selectedStatus !== 'all') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDusun('all');
+                  setSelectedType('all');
+                  setSelectedStatus('all');
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-semibold transition"
+                title="Reset semua filter ke kondisi awal"
+              >
+                <X className="w-3 h-3" />
+                Reset Filter
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -708,16 +749,40 @@ export default function Home() {
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex flex-col h-[340px] sm:h-[480px] lg:h-[560px]">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Titik Infrastruktur ({filteredReports.length})
-                </h3>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Titik Infrastruktur ({filteredReports.length}{filteredReports.length !== reports.length ? ` / ${reports.length}` : ''})
+                  </h3>
+                  {filteredReports.length !== reports.length && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                      Terfilter
+                    </span>
+                  )}
+                </div>
                 <span className="text-[11px] text-slate-400">Pilih titik untuk zoom</span>
               </div>
 
               {filteredReports.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-4 text-center text-slate-400 space-y-2">
                   <Database className="w-8 h-8 text-slate-300" />
-                  <p className="text-xs">Belum ada data titik infrastruktur yang terdaftar.</p>
+                  <p className="text-xs">
+                    {reports.length === 0
+                      ? 'Belum ada data titik infrastruktur yang terdaftar.'
+                      : 'Tidak ada laporan yang sesuai dengan filter wilayah atau status yang dipilih.'}
+                  </p>
+                  {reports.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDusun('all');
+                        setSelectedType('all');
+                        setSelectedStatus('all');
+                      }}
+                      className="text-xs font-semibold text-emerald-700 underline hover:text-emerald-900"
+                    >
+                      Reset Filter Sekarang
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="overflow-y-auto space-y-2 mt-3 pr-1 divide-y divide-slate-100">
@@ -835,14 +900,31 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {sawResults.length === 0 ? (
+                    {filteredSawResults.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-slate-400">
-                          Belum ada laporan terverifikasi untuk masuk antrean prioritas.
+                        <td colSpan={7} className="py-8 text-center text-slate-400 space-y-2">
+                          <p>
+                            {sawResults.length === 0
+                              ? 'Belum ada laporan terverifikasi untuk masuk antrean prioritas.'
+                              : 'Tidak ada antrean prioritas yang sesuai dengan kriteria filter saat ini.'}
+                          </p>
+                          {sawResults.length > 0 && (selectedDusun !== 'all' || selectedType !== 'all' || selectedStatus !== 'all') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDusun('all');
+                                setSelectedType('all');
+                                setSelectedStatus('all');
+                              }}
+                              className="text-xs font-semibold text-emerald-700 underline hover:text-emerald-900"
+                            >
+                              Reset Filter untuk melihat semua antrean
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ) : (
-                      sawResults.map((item) => (
+                      filteredSawResults.map((item) => (
                         <tr key={item.reportId} className="hover:bg-slate-50">
                           <td className="py-3 px-4 font-bold text-sm">
                             <span
@@ -930,14 +1012,31 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {reports.length === 0 ? (
+                    {filteredReports.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-slate-400">
-                          Belum ada data laporan pengaduan masuk.
+                        <td colSpan={5} className="py-8 text-center text-slate-400 space-y-2">
+                          <p>
+                            {reports.length === 0
+                              ? 'Belum ada data laporan pengaduan masuk.'
+                              : 'Tidak ada laporan yang sesuai dengan filter yang dipilih.'}
+                          </p>
+                          {reports.length > 0 && (selectedDusun !== 'all' || selectedType !== 'all' || selectedStatus !== 'all') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDusun('all');
+                                setSelectedType('all');
+                                setSelectedStatus('all');
+                              }}
+                              className="text-xs font-semibold text-emerald-700 underline hover:text-emerald-900"
+                            >
+                              Reset Filter untuk menampilkan semua
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ) : (
-                      reports.map((report) => (
+                      filteredReports.map((report) => (
                         <tr key={report.id} className="hover:bg-slate-50">
                           <td className="py-3 px-4 font-mono font-semibold text-slate-800">
                             {report.ticketNumber}
@@ -1122,6 +1221,28 @@ export default function Home() {
                       );
                     })}
                   </tbody>
+                  <tfoot className="bg-slate-100/90 font-bold border-t-2 border-slate-300">
+                    <tr>
+                      <td className="py-3.5 px-4 font-bold text-slate-900 uppercase tracking-wider text-xs">
+                        TOTAL KESELURUHAN (SEMUA WILAYAH)
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-900 text-sm">
+                        {reports.length}
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-mono font-bold text-sky-800 text-sm">
+                        {reports.filter((r) => r.status === 'terverifikasi' || r.status === 'disetujui_kades').length}
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-mono font-bold text-indigo-800 text-sm">
+                        {reports.filter((r) => r.status === 'dalam_pengerjaan').length}
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-mono font-bold text-emerald-800 text-sm">
+                        {reports.filter((r) => r.status === 'selesai').length}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-950 text-sm">
+                        Rp {reports.reduce((acc, r) => acc + (r.disposition?.approvedBudget || 0), 0).toLocaleString('id-ID')}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>

@@ -469,6 +469,19 @@ export default function MapView({
     });
   }, [selectedReport, activeRouteReport]);
 
+  // Otomatis pusatkan kamera peta saat filter diterapkan
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || isPickerMode || activeRouteReport || selectedReport) return;
+
+    if (reports.length === 1) {
+      map.flyTo([reports[0].latitude, reports[0].longitude], 15, { duration: 1.0 });
+    } else if (reports.length > 1) {
+      const bounds = L.latLngBounds(reports.map((r) => [r.latitude, r.longitude]));
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    }
+  }, [reports, isPickerMode, activeRouteReport, selectedReport]);
+
   const activeOriginCoords: [number, number] =
     originType === 'user_gps' && userGps
       ? userGps
