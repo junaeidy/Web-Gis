@@ -41,6 +41,22 @@ interface AiAssistantWidgetProps {
   onSelectReport: (report: Report) => void;
 }
 
+const INITIAL_WELCOME_MESSAGE: ChatMessage = {
+  id: 'welcome-initial',
+  sender: 'assistant',
+  source: 'general_guide',
+  text: `Halo! Saya **Pusat Bantuan Informasi Desa Simandulang**.
+
+Layanan ini siap memberikan jawaban dan panduan seputar kebutuhan desa Anda, antara lain:
+- **Syarat Surat:** SKU, SKTM, Surat Domisili, Pengantar KTP/KK
+- **Jadwal & Lokasi:** Jam pelayanan kantor Balai Desa Simandulang
+- **Cek Status Laporan:** Perkembangan laporan pengaduan (contoh: *#SMD-2026-001*) atau permohonan surat (contoh: *#SRT-2026-001*)
+- **Pengaduan & Informasi Desa:** Pengaduan masalah desa (fasilitas, kebersihan, bansos), panduan banjir rob, dan urutan tindak lanjut desa
+
+Silakan ketik pertanyaan Anda secara bebas pada kolom di bawah.`,
+  timestamp: 'Online',
+};
+
 export default function AiAssistantWidget({
   reports,
   sawResults,
@@ -58,25 +74,19 @@ export default function AiAssistantWidget({
       setIsOpen(true);
     }
   }, [isOpenExternal]);
+
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome-1',
-      sender: 'assistant',
-      source: 'general_guide',
-      text: `Halo! Saya **Pusat Bantuan Informasi Desa Simandulang**.
+  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_WELCOME_MESSAGE]);
 
-Layanan ini siap memberikan jawaban dan panduan seputar kebutuhan desa Anda, antara lain:
-- **Syarat Surat:** SKU, SKTM, Surat Domisili, Pengantar KTP/KK
-- **Jadwal & Lokasi:** Jam pelayanan kantor Balai Desa Simandulang
-- **Cek Status Laporan:** Perkembangan laporan pengaduan (contoh: *#SMD-2026-001*) atau penanganan di *kawasan wilayah desa*
-- **Pengaduan & Informasi Desa:** Pengaduan masalah desa (fasilitas, kebersihan, bansos), panduan banjir rob, dan urutan tindak lanjut desa
-
-Silakan ketik pertanyaan Anda secara bebas pada kolom di bawah.`,
-      timestamp: 'Online',
-    },
-  ]);
+  // Otomatis kembalikan chat ke awal setiap kali bot ditutup / keluar
+  useEffect(() => {
+    if (!isOpen) {
+      setInputText('');
+      setIsTyping(false);
+      setMessages([INITIAL_WELCOME_MESSAGE]);
+    }
+  }, [isOpen]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -157,15 +167,9 @@ Silakan ketik pertanyaan Anda secara bebas pada kolom di bawah.`,
   };
 
   const handleResetChat = () => {
-    setMessages([
-      {
-        id: `welcome-${Date.now()}`,
-        sender: 'assistant',
-        source: 'general_guide',
-        text: `Percakapan telah diatur ulang. Silakan ketikkan pertanyaan Anda secara bebas seputar layanan administrasi, jadwal kantor, bansos, mitigasi rob, atau status perbaikan fasilitas di Desa Simandulang.`,
-        timestamp: 'Online',
-      },
-    ]);
+    setInputText('');
+    setIsTyping(false);
+    setMessages([INITIAL_WELCOME_MESSAGE]);
   };
 
   // Render teks dengan format bold markdown sederhana dan baris baru
