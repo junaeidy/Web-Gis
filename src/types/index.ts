@@ -57,6 +57,9 @@ export interface KadesDisposition {
   decidedAt: string;
 }
 
+export type ComplaintClassification = 'pengaduan' | 'aspirasi' | 'informasi';
+export type PrivacyLevel = 'publik' | 'anonim' | 'rahasia';
+
 export interface Report {
   id: string;
   ticketNumber: string;
@@ -64,6 +67,12 @@ export interface Report {
   reporterName: string;
   reporterPhone: string;
   reporterNik?: string;
+  
+  // Klasifikasi Laporan (Seperti Halo Tabalong / SP4N Lapor)
+  classification?: ComplaintClassification;
+  incidentDate?: string;
+  privacyLevel?: PrivacyLevel;
+
   infrastructureType: InfrastructureType;
   title: string;
   description: string;

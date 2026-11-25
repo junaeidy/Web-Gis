@@ -234,20 +234,20 @@ Warga dapat menyampaikan pengaduan atau aspirasi secara langsung melalui sistem 
     actionLabel: 'Buat Pengaduan Sekarang',
   },
 
-  // --- PROFIL 5 DUSUN DESA SIMANDULANG ---
+  // --- PROFIL WILAYAH KAWASAN DESA SIMANDULANG ---
   {
     id: 'profil_dusun',
     category: 'profil',
-    title: 'Profil Wilayah 5 Dusun Desa Simandulang',
-    keywords: ['dusun', 'wilayah', 'simandulang', 'pantai', 'gori', 'puyuh', 'balai', 'tambak', 'rawa', 'luas', 'peta'],
-    answer: `**Karakteristik 5 Dusun di Desa Simandulang:**
-- **Dusun I (Simandulang Pantai):** Pemukiman nelayan panggung, tangkahan perahu, sangat rentan abrasi dan pasang surut Selat Malaka.
-- **Dusun II (Pusat Balai Desa):** Pusat pemerintahan desa, sekolah, balai pertemuan, dan fasilitas umum utama.
-- **Dusun III (Sei Puyuh):** Kawasan perkebunan rakyat, jembatan penyeberangan anak sungai, dan jalur logistik hasil bumi.
-- **Dusun IV (Dusun Gori):** Pemukiman warga, gang lingkungan penghubung antar-dusun.
-- **Dusun V (Tambak & Rawa):** Sentra budidaya tambak udang/ikan dan parit drainase penahan banjir pasang rob.`,
+    title: 'Profil & Karakteristik Wilayah Kawasan Desa Simandulang',
+    keywords: ['kawasan', 'wilayah', 'lingkungan', 'simandulang', 'pantai', 'gori', 'puyuh', 'balai', 'tambak', 'rawa', 'luas', 'peta', 'profil'],
+    answer: `**Karakteristik Kawasan Wilayah Desa Simandulang:**
+- **Kawasan Pesisir & Muara Pantai (Dusun I):** Pemukiman nelayan panggung tradisional, pangkalan perahu & tangkahan, zona pasang surut Selat Malaka.
+- **Kawasan Pusat Pemerintahan & Balai Desa (Dusun II):** Pusat pelayanan masyarakat, balai desa, sarana pendidikan, dan pasar warga.
+- **Kawasan Perkebunan Sei Puyuh (Dusun III):** Kawasan perkebunan rakyat kelapa & sawit, jembatan penyeberangan anak sungai, dan jalur logistik hasil bumi.
+- **Kawasan Pemukiman Gori (Dusun IV):** Lingkungan hunian warga dan jalur penghubung antar-wilayah.
+- **Kawasan Sentra Tambak & Muara (Dusun V):** Sentra budidaya tambak udang/ikan dan parit drainase utama penahan banjir pasang rob.`,
     actionType: 'open_map',
-    actionLabel: 'Tampilkan Peta Wilayah 5 Dusun',
+    actionLabel: 'Tampilkan Peta Wilayah Desa',
   },
 ];
 
@@ -412,12 +412,92 @@ export function processUserQuery(
   const query = rawQuery.trim();
   if (!query) {
     return {
-      answer: 'Halo! Saya Asisten Pintar Pelayanan Desa Simandulang. Silakan ketikkan pertanyaan Anda seputar syarat surat administrasi, jadwal balai desa, bansos, mitigasi pasang rob, atau tanyakan status perbaikan infrastruktur di dusun Anda.',
+      answer: 'Halo! Selamat datang di Pusat Bantuan & Informasi Desa Simandulang. Silakan ketikkan pertanyaan atau kebutuhan Anda seputar surat menyurat desa, pengaduan fasilitas, bansos, jadwal balai desa, atau pengecekan status laporan tiket.',
       source: 'general_guide',
     };
   }
 
   const queryLower = query.toLowerCase();
+  const cleanQuery = queryLower.replace(/[^a-z0-9\s]/g, ' ').trim();
+  const words = cleanQuery.split(/\s+/).filter(Boolean);
+
+  // ----------------------------------------------------------------------------
+  // TAHAP 0: SAPAAN, RAMAH TAMAH & PERCAKAPAN UMUM (GREETING & CHITCHAT)
+  // ----------------------------------------------------------------------------
+  const greetingWords = [
+    'halo', 'helo', 'hello', 'hai', 'hi', 'hay', 'haloo', 'hola', 'hy',
+    'assalamualaikum', 'assalam', 'samlikum', 'salam',
+    'pagi', 'siang', 'sore', 'malam',
+    'permisi', 'punten', 'tabik',
+    'tes', 'test', 'testing', 'ping', 'p', 'bantuan', 'tolong'
+  ];
+
+  const hasSpecificTopic = words.some((w) =>
+    ['tiket', 'smd', 'lapor', 'surat', 'sku', 'sktm', 'rob', 'bansos', 'blt', 'rusak', 'jam', 'jadwal', 'kantor', 'dusun', 'peta', 'biaya', 'syarat', 'pengaduan'].includes(w)
+  );
+
+  // 1. Sapaan Ramah Pembuka (Pure Greeting)
+  const isPureGreeting =
+    greetingWords.includes(cleanQuery) ||
+    (words.length <= 4 && words.some((w) => greetingWords.includes(w)) && !hasSpecificTopic);
+
+  if (isPureGreeting) {
+    return {
+      answer: `Halo! Selamat datang di **Pusat Bantuan Informasi Desa Simandulang**.
+
+Saya siap membantu Anda dengan informasi seputar:
+1. **Layanan Surat Desa:** Syarat pembuatan SKU Usaha, SKTM Tidak Mampu, Surat Domisili, dan Pengantar KTP/KK
+2. **Pengaduan & Aspirasi:** Melaporkan fasilitas rusak, sampah lingkungan, pelayanan kantor, atau usulan pembangunan
+3. **Cek Status Laporan:** Memeriksa perkembangan nomor tiket (contoh: *#SMD-2026-001*) atau rekap penanganan per kawasan
+4. **Bantuan Sosial (Bansos):** Info DTKS dan kriteria penerima BLT Dana Desa
+5. **Jam Kerja Kantor:** Jadwal pelayanan kantor Balai Desa Simandulang
+
+Ada yang bisa kami bantu untuk Anda hari ini? Silakan ketikkan pertanyaan Anda secara langsung.`,
+      source: 'general_guide',
+    };
+  }
+
+  // 2. Ungkapan Terima Kasih
+  const isThankYou =
+    cleanQuery.includes('terima kasih') ||
+    cleanQuery.includes('terimakasih') ||
+    cleanQuery.includes('makasih') ||
+    cleanQuery.includes('matur nuwun') ||
+    cleanQuery.includes('thanks') ||
+    cleanQuery.includes('thank you') ||
+    cleanQuery.includes('tengkyu') ||
+    cleanQuery.includes('sukses');
+
+  if (isThankYou && words.length <= 5) {
+    return {
+      answer: `Sama-sama! Senang bisa membantu Anda. Jika ada hal lain yang ingin ditanyakan seputar layanan surat, pengaduan fasilitas, atau informasi Desa Simandulang, silakan ketikkan kembali kapan saja. Semoga hari Anda lancar!`,
+      source: 'general_guide',
+    };
+  }
+
+  // 3. Pertanyaan Identitas Asisten
+  const isIdentity =
+    cleanQuery.includes('siapa kamu') ||
+    cleanQuery.includes('siapa anda') ||
+    cleanQuery.includes('kamu siapa') ||
+    cleanQuery.includes('anda siapa') ||
+    cleanQuery.includes('kamu itu apa') ||
+    cleanQuery.includes('aplikasi apa');
+
+  if (isIdentity) {
+    return {
+      answer: `Saya adalah **Pusat Bantuan Informasi Digital Desa Simandulang**.
+
+Layanan ini siap mendampingi seluruh warga selama 24 jam untuk:
+1. Memberikan informasi persyaratan surat menyurat kantor desa.
+2. Membantu pelacakan nomor tiket pengaduan masyarakat.
+3. Memberikan panduan jam kantor balai desa dan program bantuan sosial (BLT Dana Desa).
+4. Menyediakan panduan kewaspadaan pasang rob bagi warga pesisir.
+
+Silakan ketik pertanyaan Anda secara bebas!`,
+      source: 'general_guide',
+    };
+  }
 
   // ----------------------------------------------------------------------------
   // DETEKSI ENTITAS 1: PENGECEKAN NOMOR TIKET SPESIFIK (e.g., #SMD-2026-001, SMD-001, 001)
@@ -595,8 +675,8 @@ Anda dapat melihat posisi titik laporan ini langsung pada peta desa.`,
 
 Sebagai Asisten Pelayanan Desa Simandulang, Anda dapat menanyakan hal-hal berikut:
 1. **Layanan Administrasi Surat:** Syarat pembuatan SKU, SKTM, Surat Domisili, atau Pengantar KTP/KK.
-2. **Jam Kerja Kantor:** Jam operasional Balai Desa di Dusun II.
-3. **Status Perbaikan & Laporan:** Ketikkan nomor tiket (contoh: **#SMD-2026-001**) atau ketik *status perbaikan di Dusun I*.
+2. **Jam Kerja Kantor:** Jam operasional kantor Balai Desa Simandulang.
+3. **Status Perbaikan & Laporan:** Ketikkan nomor tiket (contoh: **#SMD-2026-001**) atau ketik *status perbaikan di kawasan pesisir*.
 4. **Bantuan Sosial & Mitigasi Rob:** Info syarat BLT Dana Desa, PKH, atau panduan keselamatan pasang rob pesisir.
 
 Silakan ketikkan kembali pertanyaan Anda dengan kata kunci yang lebih spesifik.`,

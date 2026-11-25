@@ -751,12 +751,12 @@ export default function Home() {
                   : 'border-slate-200 text-slate-700'
               }`}
             >
-              <option value="all">Semua Dusun</option>
-              <option value="Dusun I">Dusun I (Simandulang Pantai)</option>
-              <option value="Dusun II">Dusun II (Pusat Balai Desa)</option>
-              <option value="Dusun III">Dusun III (Sei Puyuh)</option>
-              <option value="Dusun IV">Dusun IV (Dusun Gori)</option>
-              <option value="Dusun V">Dusun V (Tambak & Rawa)</option>
+              <option value="all">Semua Wilayah</option>
+              <option value="Dusun I">Kawasan Pesisir Pantai</option>
+              <option value="Dusun II">Kawasan Pusat Balai Desa</option>
+              <option value="Dusun III">Kawasan Sei Puyuh</option>
+              <option value="Dusun IV">Kawasan Pemukiman Gori</option>
+              <option value="Dusun V">Kawasan Sentra Tambak</option>
             </select>
 
             <select
@@ -968,7 +968,7 @@ export default function Home() {
                   Urutan Prioritas Penanganan Fasilitas & Pengaduan Warga
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Urutan penanganan transparan berdasarkan tingkat urgensi kerusakan dan kebutuhan masyarakat di 5 dusun.
+                  Urutan penanganan transparan berdasarkan tingkat urgensi kerusakan dan kebutuhan masyarakat di seluruh kawasan Desa Simandulang.
                 </p>
               </div>
               {currentUser && currentUser.role !== 'warga' && (
@@ -1271,7 +1271,7 @@ export default function Home() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
                     <tr>
-                      <th className="py-3 px-4">Wilayah Dusun</th>
+                      <th className="py-3 px-4">Kawasan Wilayah Desa</th>
                       <th className="py-3 px-4 text-center">Total Laporan</th>
                       <th className="py-3 px-4 text-center">Survei Lapangan</th>
                       <th className="py-3 px-4 text-center">Pengerjaan</th>
@@ -1288,16 +1288,16 @@ export default function Home() {
                       const budget = dsnReports.reduce((acc, r) => acc + (r.disposition?.approvedBudget || 0), 0);
 
                       let subName = '';
-                      if (dsn === 'Dusun I') subName = 'Simandulang Pantai';
-                      if (dsn === 'Dusun II') subName = 'Pusat Balai Desa';
-                      if (dsn === 'Dusun III') subName = 'Sei Puyuh';
-                      if (dsn === 'Dusun IV') subName = 'Dusun Gori';
-                      if (dsn === 'Dusun V') subName = 'Tambak & Rawa';
+                      if (dsn === 'Dusun I') subName = 'Kawasan Pesisir Pantai';
+                      if (dsn === 'Dusun II') subName = 'Kawasan Pusat Balai Desa';
+                      if (dsn === 'Dusun III') subName = 'Kawasan Sei Puyuh';
+                      if (dsn === 'Dusun IV') subName = 'Kawasan Pemukiman Gori';
+                      if (dsn === 'Dusun V') subName = 'Kawasan Sentra Tambak & Rawa';
 
                       return (
                         <tr key={dsn} className="hover:bg-slate-50">
                           <td className="py-3 px-4 font-semibold text-slate-900">
-                            {dsn} <span className="text-slate-400 font-normal">({subName})</span>
+                            {subName}
                           </td>
                           <td className="py-3 px-4 text-center font-mono font-bold text-slate-700">
                             {dsnReports.length}

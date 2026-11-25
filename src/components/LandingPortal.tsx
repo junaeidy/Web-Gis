@@ -71,8 +71,8 @@ export default function LandingPortal({
     },
     {
       id: 'profil',
-      title: 'Web Profil Desa',
-      description: 'Karakteristik 5 Dusun, Data Demografi & Potensi Pesisir',
+      title: 'Profil Wilayah Desa',
+      description: 'Karakteristik Kawasan, Demografi Warga & Potensi Maritim',
       icon: Globe,
       onClick: onOpenProfilDesa,
     },

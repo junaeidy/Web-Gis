@@ -68,7 +68,7 @@ export default function AiAssistantWidget({
 Layanan ini siap memberikan jawaban dan panduan seputar kebutuhan desa Anda, antara lain:
 - **Syarat Surat:** SKU, SKTM, Surat Domisili, Pengantar KTP/KK
 - **Jadwal & Lokasi:** Jam pelayanan kantor Balai Desa Simandulang
-- **Cek Status Laporan:** Perkembangan laporan pengaduan (contoh: *#SMD-2026-001*) atau penanganan di *Dusun I sampai V*
+- **Cek Status Laporan:** Perkembangan laporan pengaduan (contoh: *#SMD-2026-001*) atau penanganan di *kawasan wilayah desa*
 - **Pengaduan & Informasi Desa:** Pengaduan masalah desa (fasilitas, kebersihan, bansos), panduan banjir rob, dan urutan tindak lanjut desa
 
 Silakan ketik pertanyaan Anda secara bebas pada kolom di bawah.`,

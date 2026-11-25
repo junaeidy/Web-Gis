@@ -17,33 +17,33 @@ export default function ProfilDesaModal({
 }: ProfilDesaModalProps) {
   const dusunList = [
     {
-      nama: 'Dusun I (Simandulang Pantai)',
+      nama: 'Kawasan Pesisir & Muara Pantai',
       icon: Fish,
       karakter: 'Pemukiman panggung pesisir Selat Malaka, pangkalan perahu & tangkahan nelayan tangkap tradisional. Zona paling rentan pasang rob.',
       kk: '± 280 KK',
     },
     {
-      nama: 'Dusun II (Pusat Balai Desa)',
+      nama: 'Kawasan Pusat Balai Desa',
       icon: Users,
       karakter: 'Pusat administrasi desa, kantor kepala desa, sekolah dasar, pasar harian, dan pertokoan kelontong warga.',
       kk: '± 340 KK',
     },
     {
-      nama: 'Dusun III (Sei Puyuh)',
+      nama: 'Kawasan Perkebunan Sei Puyuh',
       icon: TreePine,
-      karakter: 'Kawasan perkebunan kelapa dan sawit rakyat, anak sungai muara, serta jalur logistik darat antar-dusun.',
+      karakter: 'Kawasan perkebunan kelapa dan sawit rakyat, anak sungai muara, serta jalur logistik darat antar-wilayah.',
       kk: '± 210 KK',
     },
     {
-      nama: 'Dusun IV (Dusun Gori)',
+      nama: 'Kawasan Pemukiman Gori',
       icon: TreePine,
-      karakter: 'Area perkampungan dan perkebunan swadaya masyarakat dengan akses jalan tanah dan gang penghubung.',
+      karakter: 'Area perkampungan dan perkebunan swadaya masyarakat dengan akses jalan tanah dan gang penghubung lingkungan.',
       kk: '± 195 KK',
     },
     {
-      nama: 'Dusun V (Tambak & Rawa)',
+      nama: 'Kawasan Sentra Tambak & Rawa',
       icon: Fish,
-      karakter: 'Sentra budidaya tambak udang vaname dan ikan air payau, didukung jaringan parit drainase utama.',
+      karakter: 'Sentra budidaya tambak udang vaname dan ikan air payau, didukung jaringan parit drainase utama penahan pasang.',
       kk: '± 165 KK',
     },
   ];
@@ -88,10 +88,10 @@ export default function ProfilDesaModal({
             </p>
           </div>
 
-          {/* Wilayah 5 Dusun */}
+          {/* Karakteristik Kawasan Wilayah Desa */}
           <div>
             <h4 className="font-bold text-sm text-slate-900 mb-2">
-              Karakteristik 5 Wilayah Dusun
+              Kawasan Lingkungan & Potensi Wilayah Desa
             </h4>
             <div className="space-y-2.5">
               {dusunList.map((d, idx) => {
@@ -124,7 +124,7 @@ export default function ProfilDesaModal({
           {/* Tombol Lihat Peta */}
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
             <span className="text-xs text-slate-500">
-              Lihat sebaran spasial 5 dusun langsung di peta GIS interaktif.
+              Lihat sebaran seluruh kawasan wilayah langsung pada peta interaktif desa.
             </span>
             <button
               type="button"

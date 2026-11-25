@@ -34,6 +34,15 @@ interface ReportDetailModalProps {
   onFocusLocation?: (report: Report) => void;
 }
 
+function getKawasanName(dsn: string) {
+  if (dsn === 'Dusun I') return 'Kawasan Pesisir Pantai';
+  if (dsn === 'Dusun II') return 'Kawasan Pusat Balai Desa';
+  if (dsn === 'Dusun III') return 'Kawasan Sei Puyuh';
+  if (dsn === 'Dusun IV') return 'Kawasan Pemukiman Gori';
+  if (dsn === 'Dusun V') return 'Kawasan Sentra Tambak & Rawa';
+  return dsn;
+}
+
 export default function ReportDetailModal({
   report,
   saw,
@@ -71,6 +80,20 @@ export default function ReportDetailModal({
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
             <span className="font-mono text-[11px] font-bold px-2 py-0.5 bg-slate-200 text-slate-800 rounded">
               {report.ticketNumber}
+            </span>
+            {report.classification && (
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded capitalize ${
+                report.classification === 'aspirasi'
+                  ? 'bg-sky-100 text-sky-800'
+                  : report.classification === 'informasi'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-rose-100 text-rose-800'
+              }`}>
+                {report.classification}
+              </span>
+            )}
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800">
+              {getKawasanName(report.dusun)}
             </span>
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-sky-100 text-sky-800 capitalize">
               {report.infrastructureType.replace(/_/g, ' ')}
@@ -233,7 +256,7 @@ export default function ReportDetailModal({
 
         {/* Deskripsi Laporan */}
         <div>
-          <h4 className="font-bold text-slate-900 mb-1">Deskripsi Kerusakan:</h4>
+          <h4 className="font-bold text-slate-900 mb-1">Uraian Laporan:</h4>
           <p className="text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
             {report.description}
           </p>
@@ -245,9 +268,15 @@ export default function ReportDetailModal({
             <div className="flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span>
-                <strong>Lokasi:</strong> {report.dusun}
+                <strong>Lokasi Kawasan:</strong> {getKawasanName(report.dusun)}
               </span>
             </div>
+            {report.incidentDate && (
+              <div className="flex items-center gap-1.5 text-slate-500 text-[11px] pl-5">
+                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>Tanggal Kejadian: <strong>{new Date(report.incidentDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></span>
+              </div>
+            )}
             {report.addressDetail && (
               <div className="text-[11px] text-slate-500 pl-5 leading-relaxed">
                 {report.addressDetail}

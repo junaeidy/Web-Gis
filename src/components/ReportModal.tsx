@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Dusun, InfrastructureType, Report, UserProfile } from '@/types';
+import { Dusun, InfrastructureType, Report, UserProfile, ComplaintClassification, PrivacyLevel } from '@/types';
 import ModalWrapper from '@/components/ui/ModalWrapper';
-import { MapPin, Navigation, AlertCircle, X, Shield, Upload, Image as ImageIcon } from 'lucide-react';
+import { MapPin, Navigation, AlertCircle, X, Shield, Upload, Image as ImageIcon, MessageSquare, Lightbulb, Info, Calendar, Lock, Eye, EyeOff } from 'lucide-react';
 import { VILLAGE_CENTER } from '@/data/geo-simandulang';
 import { useToast } from '@/components/ui/Toast';
 
@@ -55,7 +55,9 @@ function ReportForm({
   const [reporterName, setReporterName] = useState(currentUser.name);
   const [reporterPhone, setReporterPhone] = useState(currentUser.phone);
   const [reporterNik, setReporterNik] = useState(currentUser.nik || '');
-  const [hideIdentity, setHideIdentity] = useState(true);
+  const [classification, setClassification] = useState<ComplaintClassification>('pengaduan');
+  const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel>('anonim');
+  const [incidentDate, setIncidentDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -128,7 +130,10 @@ function ReportForm({
       reporterName,
       reporterPhone,
       reporterNik,
-      hideReporterIdentity: hideIdentity,
+      classification,
+      incidentDate,
+      privacyLevel,
+      hideReporterIdentity: privacyLevel !== 'publik',
       supportedUserIds: [currentUser.id],
       upvotes: 1,
       title,
@@ -177,73 +182,164 @@ function ReportForm({
           </div>
         )}
 
-        {/* Info Pelapor & Privasi */}
-        <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-emerald-950 flex items-center gap-1.5">
-              <Shield className="w-4 h-4 text-emerald-700" /> Identitas Pelapor Terverifikasi
-            </span>
-            <span className="text-[11px] bg-emerald-200/60 text-emerald-900 font-medium px-2 py-0.5 rounded">
-              Warga {dusun}
-            </span>
+        {/* 1. KLASIFIKASI LAPORAN (SEPERTI HALO TABALONG / SP4N LAPOR) */}
+        <div>
+          <label className="block font-bold text-slate-800 mb-1.5 text-xs uppercase tracking-wider">
+            Jenis Laporan / Klasifikasi
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => setClassification('pengaduan')}
+              className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition text-center ${
+                classification === 'pengaduan'
+                  ? 'bg-rose-50 border-rose-500 text-rose-900 font-bold shadow-xs ring-2 ring-rose-400/30'
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <MessageSquare className={`w-4 h-4 ${classification === 'pengaduan' ? 'text-rose-600' : 'text-slate-400'}`} />
+              <span className="text-xs">Pengaduan</span>
+              <span className="text-[10px] text-slate-500 font-normal hidden sm:inline">Keluhan Fasilitas / Layanan</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setClassification('aspirasi')}
+              className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition text-center ${
+                classification === 'aspirasi'
+                  ? 'bg-sky-50 border-sky-500 text-sky-900 font-bold shadow-xs ring-2 ring-sky-400/30'
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <Lightbulb className={`w-4 h-4 ${classification === 'aspirasi' ? 'text-sky-600' : 'text-slate-400'}`} />
+              <span className="text-xs">Aspirasi</span>
+              <span className="text-[10px] text-slate-500 font-normal hidden sm:inline">Usulan & Ide Warga</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setClassification('informasi')}
+              className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition text-center ${
+                classification === 'informasi'
+                  ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold shadow-xs ring-2 ring-emerald-400/30'
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <Info className={`w-4 h-4 ${classification === 'informasi' ? 'text-emerald-600' : 'text-slate-400'}`} />
+              <span className="text-xs">Permintaan Info</span>
+              <span className="text-[10px] text-slate-500 font-normal hidden sm:inline">Tanya Syarat / Regulasi</span>
+            </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+        </div>
+
+        {/* 2. PENGATURAN PRIVASI & KERAHASIAAN IDENTITAS (HALO TABALONG STYLE) */}
+        <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-slate-800 text-xs flex items-center gap-1.5">
+              <Shield className="w-4 h-4 text-emerald-700" /> Pengaturan Privasi & Kerahasiaan
+            </span>
+            <span className="text-[11px] text-slate-500">Pilih visibilitas laporan</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <label className={`p-2 rounded-lg border cursor-pointer flex items-center gap-1.5 text-xs transition ${
+              privacyLevel === 'publik'
+                ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold ring-1 ring-emerald-400'
+                : 'bg-white border-slate-200 text-slate-700'
+            }`}>
+              <input
+                type="radio"
+                name="privacy"
+                value="publik"
+                checked={privacyLevel === 'publik'}
+                onChange={() => setPrivacyLevel('publik')}
+                className="text-emerald-700 focus:ring-emerald-600"
+              />
+              <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5 text-slate-500" /> Publik</span>
+            </label>
+
+            <label className={`p-2 rounded-lg border cursor-pointer flex items-center gap-1.5 text-xs transition ${
+              privacyLevel === 'anonim'
+                ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold ring-1 ring-emerald-400'
+                : 'bg-white border-slate-200 text-slate-700'
+            }`}>
+              <input
+                type="radio"
+                name="privacy"
+                value="anonim"
+                checked={privacyLevel === 'anonim'}
+                onChange={() => setPrivacyLevel('anonim')}
+                className="text-emerald-700 focus:ring-emerald-600"
+              />
+              <span className="flex items-center gap-1"><EyeOff className="w-3.5 h-3.5 text-emerald-700" /> Anonim</span>
+            </label>
+
+            <label className={`p-2 rounded-lg border cursor-pointer flex items-center gap-1.5 text-xs transition ${
+              privacyLevel === 'rahasia'
+                ? 'bg-rose-50 border-rose-500 text-rose-950 font-bold ring-1 ring-rose-400'
+                : 'bg-white border-slate-200 text-slate-700'
+            }`}>
+              <input
+                type="radio"
+                name="privacy"
+                value="rahasia"
+                checked={privacyLevel === 'rahasia'}
+                onChange={() => setPrivacyLevel('rahasia')}
+                className="text-rose-700 focus:ring-rose-600"
+              />
+              <span className="flex items-center gap-1"><Lock className="w-3.5 h-3.5 text-rose-600" /> Rahasia</span>
+            </label>
+          </div>
+          <p className="text-[11px] text-slate-600 leading-relaxed">
+            {privacyLevel === 'publik' && 'Nama Anda ditampilkan pada laporan publik agar dapat dibaca dan didukung oleh sesama warga desa.'}
+            {privacyLevel === 'anonim' && 'Nama Anda disamarkan sebagai "Warga Simandulang (Anonim)" pada tampilan peta publik demi kenyamanan.'}
+            {privacyLevel === 'rahasia' && 'Laporan bersifat tertutup/privat dan hanya dapat dilihat oleh Anda serta Kepala Desa / Petugas Desa.'}
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200 text-xs">
             <div>
-              <span className="text-slate-500 block">Nama:</span>
+              <span className="text-slate-500 block">Nama Lengkap:</span>
               <input
                 type="text"
                 required
                 value={reporterName}
                 onChange={(e) => setReporterName(e.target.value)}
-                className="w-full px-2 py-1 bg-white border border-emerald-300 rounded font-medium text-slate-800"
+                className="w-full px-2 py-1 bg-white border border-slate-300 rounded text-slate-800"
               />
             </div>
             <div>
-              <span className="text-slate-500 block">No. HP / WA:</span>
+              <span className="text-slate-500 block">No. WhatsApp / HP:</span>
               <input
                 type="text"
                 required
                 value={reporterPhone}
                 onChange={(e) => setReporterPhone(e.target.value)}
-                className="w-full px-2 py-1 bg-white border border-emerald-300 rounded font-medium text-slate-800"
+                placeholder="08xxxxxxxx"
+                className="w-full px-2 py-1 bg-white border border-slate-300 rounded text-slate-800"
               />
             </div>
             <div>
-              <span className="text-slate-500 block">NIK KTP:</span>
+              <span className="text-slate-500 block">NIK KTP (Verifikasi):</span>
               <input
                 type="text"
                 value={reporterNik}
                 onChange={(e) => setReporterNik(e.target.value)}
                 placeholder="16 digit NIK..."
-                className="w-full px-2 py-1 bg-white border border-emerald-300 rounded font-medium text-slate-800"
+                className="w-full px-2 py-1 bg-white border border-slate-300 rounded text-slate-800"
               />
             </div>
           </div>
-          <div className="pt-1 border-t border-emerald-200/50">
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-emerald-950 font-medium">
-              <input
-                type="checkbox"
-                checked={hideIdentity}
-                onChange={(e) => setHideIdentity(e.target.checked)}
-                className="rounded text-emerald-700 focus:ring-emerald-600"
-              />
-              Samarkan Nama & Kontak Saya di Peta Publik (Rekomendasi Privasi)
-            </label>
-            <p className="text-[11px] text-emerald-800 mt-0.5">
-              Identitas Anda hanya dapat dilihat oleh Perangkat Desa Simandulang untuk keperluan verifikasi. Pengunjung umum hanya akan melihat &ldquo;Warga {dusun} (Anonim)&rdquo;.
-            </p>
-          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
+        {/* 3. KATEGORI & WILAYAH KAWASAN KEJADIAN */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-1">
             <label className="block font-semibold text-slate-700 mb-1">
-              Kategori Pengaduan / Masalah <span className="text-red-500">*</span>
+              Kategori Laporan <span className="text-red-500">*</span>
             </label>
             <select
               value={infrastructureType}
               onChange={(e) => setInfrastructureType(e.target.value as InfrastructureType)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
+              className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white text-xs"
             >
               <optgroup label="Fasilitas & Infrastruktur Fisik">
                 <option value="jalan_poros">Jalan Poros Utama Desa</option>
@@ -262,21 +358,34 @@ function ReportForm({
               </optgroup>
             </select>
           </div>
-          <div>
+
+          <div className="sm:col-span-1">
             <label className="block font-semibold text-slate-700 mb-1">
-              Wilayah Dusun <span className="text-red-500">*</span>
+              Kawasan Wilayah <span className="text-red-500">*</span>
             </label>
             <select
               value={dusun}
               onChange={(e) => setDusun(e.target.value as Dusun)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
+              className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white text-xs"
             >
-              <option value="Dusun I">Dusun I (Simandulang Pantai / Pesisir)</option>
-              <option value="Dusun II">Dusun II (Pusat Balai Desa & Pasar)</option>
-              <option value="Dusun III">Dusun III (Sei Puyuh)</option>
-              <option value="Dusun IV">Dusun IV (Dusun Gori / Kebun Sawit)</option>
-              <option value="Dusun V">Dusun V (Tambak & Rawa Pasang Surut)</option>
+              <option value="Dusun I">Kawasan Pesisir & Muara Pantai (Dusun I)</option>
+              <option value="Dusun II">Kawasan Pusat Balai Desa & Pasar (Dusun II)</option>
+              <option value="Dusun III">Kawasan Sei Puyuh (Dusun III)</option>
+              <option value="Dusun IV">Kawasan Pemukiman Gori (Dusun IV)</option>
+              <option value="Dusun V">Kawasan Sentra Tambak & Rawa (Dusun V)</option>
             </select>
+          </div>
+
+          <div className="sm:col-span-1">
+            <label className="block font-semibold text-slate-700 mb-1">
+              Tanggal Kejadian
+            </label>
+            <input
+              type="date"
+              value={incidentDate}
+              onChange={(e) => setIncidentDate(e.target.value)}
+              className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-slate-900 bg-white text-xs"
+            />
           </div>
         </div>
 
