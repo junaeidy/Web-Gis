@@ -7,8 +7,10 @@ import {
   Report,
   ReportEvaluation,
   UserProfile,
+  LetterRequest,
+  LetterStatus,
 } from '@/types';
-import { MOCK_USERS } from '@/data/mock-data';
+import { MOCK_USERS, INITIAL_LETTERS } from '@/data/mock-data';
 import { calculateSAW } from '@/lib/saw';
 import {
   fetchReportsFromDb,
@@ -20,6 +22,8 @@ import {
   insertUserToDb,
   getSavedSessionUser,
   saveSessionUser,
+  insertLetterToDb,
+  updateLetterInDb,
 } from '@/lib/data-service';
 import ReportModal from '@/components/ReportModal';
 import VerificationModal from '@/components/VerificationModal';
@@ -54,6 +58,14 @@ import {
   X,
   LayoutGrid,
   ArrowLeft,
+  Mail,
+  CheckCircle2,
+  Clock,
+  Check,
+  XCircle,
+  Send,
+  AlertCircle,
+  FileCheck,
 } from 'lucide-react';
 
 const DynamicMapView = dynamic(() => import('@/components/Map/MapView'), {
@@ -76,6 +88,9 @@ export default function Home() {
   // State Laporan & Database Supabase
   const [reports, setReports] = useState<Report[]>([]);
   const [evaluations, setEvaluations] = useState<ReportEvaluation[]>([]);
+  const [letters, setLetters] = useState<LetterRequest[]>(INITIAL_LETTERS);
+  const [officerSubTab, setOfficerSubTab] = useState<'pengaduan' | 'surat'>('pengaduan');
+  const [mySubTab, setMySubTab] = useState<'pengaduan' | 'surat'>('pengaduan');
   const [dbError, setDbError] = useState<string | null>(null);
 
   // Mode Tampilan Halaman: 'portal' (Landing Page seperti gambar) | 'layanan' (Dashboard Peta & Pengaduan)
@@ -115,8 +130,8 @@ export default function Home() {
     const { users: loadedUsers } = await fetchUsersFromDb();
     setUsers(loadedUsers);
 
-    // Ambil Laporan & Evaluasi MURNI dari Supabase melalui Server API
-    const { reports: loadedReports, evaluations: loadedEvals, error: repErr } = await fetchReportsFromDb();
+    // Ambil Laporan, Evaluasi & Permohonan Surat MURNI dari Supabase
+    const { reports: loadedReports, evaluations: loadedEvals, letters: loadedLetters, error: repErr } = await fetchReportsFromDb();
     if (repErr) {
       setDbError(repErr);
       setReports([]);
@@ -124,6 +139,9 @@ export default function Home() {
     } else {
       setReports(loadedReports);
       setEvaluations(loadedEvals);
+      if (loadedLetters && loadedLetters.length > 0) {
+        setLetters(loadedLetters);
+      }
       setDbError(null);
     }
   }, []);
@@ -140,8 +158,8 @@ export default function Home() {
       const { users: loadedUsers } = await fetchUsersFromDb();
       if (!ignore) setUsers(loadedUsers);
 
-      // Ambil Laporan & Evaluasi MURNI dari Supabase
-      const { reports: loadedReports, evaluations: loadedEvals, error: repErr } = await fetchReportsFromDb();
+      // Ambil Laporan, Evaluasi & Surat MURNI dari Supabase
+      const { reports: loadedReports, evaluations: loadedEvals, letters: loadedLetters, error: repErr } = await fetchReportsFromDb();
       if (!ignore) {
         if (repErr) {
           setDbError(repErr);
@@ -150,6 +168,9 @@ export default function Home() {
         } else {
           setReports(loadedReports);
           setEvaluations(loadedEvals);
+          if (loadedLetters && loadedLetters.length > 0) {
+            setLetters(loadedLetters);
+          }
           setDbError(null);
         }
       }
@@ -208,6 +229,18 @@ export default function Home() {
         r.reporterName.trim().toLowerCase() === currentUser.name.trim().toLowerCase()
     );
   }, [reports, currentUser]);
+
+  // Permohonan Surat Milik Warga yang Sedang Login
+  const myLetters = useMemo(() => {
+    if (!currentUser) return [];
+    return letters.filter(
+      (l) =>
+        (l.applicantId && l.applicantId === currentUser.id) ||
+        (currentUser.phone && l.applicantPhone === currentUser.phone) ||
+        (currentUser.nik && l.applicantNik === currentUser.nik) ||
+        l.applicantName.trim().toLowerCase() === currentUser.name.trim().toLowerCase()
+    );
+  }, [letters, currentUser]);
 
   // Statistik & Monitoring
   const stats = useMemo(() => {
@@ -402,6 +435,68 @@ export default function Home() {
     toastSuccess(
       'Pekerjaan Selesai!',
       'Dokumentasi bukti fisik telah tersimpan dan status laporan ditandai selesai.'
+    );
+    await loadSupabaseData();
+  };
+
+  // HANDLERS PERMOHONAN SURAT ONLINE
+  const handleCreateLetter = async (
+    newLetterData: Omit<LetterRequest, 'id' | 'ticketNumber' | 'createdAt' | 'updatedAt' | 'status'>
+  ): Promise<string> => {
+    const { letter: created, ticketNumber, error } = await insertLetterToDb(newLetterData);
+    if (error && !created) {
+      toastError('Gagal Mengirim Permohonan Surat', error);
+      throw new Error(error);
+    }
+
+    const assignedTicket =
+      created?.ticketNumber ||
+      ticketNumber ||
+      `SRT-2026-${Math.floor(100 + Math.random() * 900)}`;
+
+    if (created) {
+      setLetters((prev) => [created, ...prev]);
+    } else {
+      const localFallback: LetterRequest = {
+        ...newLetterData,
+        id: `local-${Date.now()}`,
+        ticketNumber: assignedTicket,
+        status: 'menunggu_verifikasi',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setLetters((prev) => [localFallback, ...prev]);
+    }
+
+    toastSuccess(
+      'Permohonan Surat Terkirim!',
+      `Nomor Tiket #${assignedTicket} telah diterbitkan dan langsung masuk antrean petugas desa.`
+    );
+    await loadSupabaseData();
+    return assignedTicket;
+  };
+
+  const handleUpdateLetterStatus = async (
+    letterId: string,
+    newStatus: LetterStatus,
+    officerNotes?: string,
+    pickupSchedule?: string
+  ) => {
+    const { success, error } = await updateLetterInDb(letterId, {
+      status: newStatus,
+      officerNotes,
+      pickupSchedule,
+    });
+    if (!success) {
+      toastError('Gagal Memperbarui Status Surat', error || 'Gagal mengubah status berkas.');
+      return;
+    }
+    toastSuccess(
+      'Status Permohonan Diperbarui',
+      `Status berkas diperbarui menjadi: ${newStatus.replace(/_/g, ' ')}.`
+    );
+    setLetters((prev) =>
+      prev.map((l) => (l.id === letterId ? { ...l, status: newStatus, officerNotes, pickupSchedule } : l))
     );
     await loadSupabaseData();
   };
@@ -1091,151 +1186,446 @@ export default function Home() {
                   Ruang Kerja Perangkat Desa
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Pemeriksaan laporan warga, penetapan skala prioritas, dan penugasan tim kerja lapangan.
+                  Pemeriksaan laporan pengaduan warga, antrean permohonan surat administrasi, penetapan skala prioritas, dan penugasan tim kerja.
                 </p>
+              </div>
+
+              {/* Sub-tab Switcher: Pengaduan vs Permohonan Surat */}
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setOfficerSubTab('pengaduan')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    officerSubTab === 'pengaduan'
+                      ? 'bg-white text-emerald-800 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>Pengaduan Fasilitas ({reports.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOfficerSubTab('surat')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    officerSubTab === 'surat'
+                      ? 'bg-white text-emerald-800 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <FileCheck className="w-3.5 h-3.5" />
+                  <span>Antrean Surat Warga ({letters.length})</span>
+                </button>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-slate-100 text-slate-700 font-semibold text-[11px] border-b border-slate-200">
-                    <tr>
-                      <th className="py-3 px-4">No. Tiket</th>
-                      <th className="py-3 px-4">Judul & Dusun</th>
-                      <th className="py-3 px-4">Pelapor</th>
-                      <th className="py-3 px-4">Status Alur</th>
-                      <th className="py-3 px-4 text-right">Tindakan Petugas</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredReports.length === 0 ? (
+            {officerSubTab === 'pengaduan' ? (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-100 text-slate-700 font-semibold text-[11px] border-b border-slate-200">
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-slate-400 space-y-2">
-                          <p>
-                            {reports.length === 0
-                              ? 'Belum ada data laporan pengaduan masuk.'
-                              : 'Tidak ada laporan yang sesuai dengan filter yang dipilih.'}
-                          </p>
-                          {reports.length > 0 && (selectedDusun !== 'all' || selectedType !== 'all' || selectedStatus !== 'all') && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedDusun('all');
-                                setSelectedType('all');
-                                setSelectedStatus('all');
-                              }}
-                              className="text-xs font-semibold text-emerald-700 underline hover:text-emerald-900"
-                            >
-                              Reset Filter untuk menampilkan semua
-                            </button>
-                          )}
-                        </td>
+                        <th className="py-3 px-4">No. Tiket</th>
+                        <th className="py-3 px-4">Judul & Kawasan</th>
+                        <th className="py-3 px-4">Pelapor</th>
+                        <th className="py-3 px-4">Status Alur</th>
+                        <th className="py-3 px-4 text-right">Tindakan Petugas</th>
                       </tr>
-                    ) : (
-                      filteredReports.map((report) => (
-                        <tr key={report.id} className="hover:bg-slate-50">
-                          <td className="py-3 px-4 font-mono font-semibold text-slate-800">
-                            {report.ticketNumber}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="font-bold text-slate-900">{report.title}</div>
-                            <div className="text-[11px] text-slate-500">{report.dusun}</div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="font-medium text-slate-800">{report.reporterName}</div>
-                            <div className="text-[11px] text-slate-400 font-mono">{report.reporterPhone}</div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-semibold capitalize ${
-                                report.status === 'selesai'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : report.status === 'dalam_pengerjaan'
-                                  ? 'bg-indigo-100 text-indigo-800'
-                                  : report.status === 'disetujui_kades'
-                                  ? 'bg-sky-100 text-sky-800'
-                                  : report.status === 'terverifikasi'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : report.status === 'duplikat'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-amber-100 text-amber-800'
-                              }`}
-                            >
-                              {report.status.replace(/_/g, ' ')}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <button
-                              onClick={() => openDetail(report)}
-                              className="px-2.5 py-1 font-semibold text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
-                            >
-                              Periksa & Tindak Lanjut
-                            </button>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredReports.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-slate-400 space-y-2">
+                            <p>
+                              {reports.length === 0
+                                ? 'Belum ada data laporan pengaduan masuk.'
+                                : 'Tidak ada laporan yang sesuai dengan filter yang dipilih.'}
+                            </p>
+                            {reports.length > 0 && (selectedDusun !== 'all' || selectedType !== 'all' || selectedStatus !== 'all') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDusun('all');
+                                  setSelectedType('all');
+                                  setSelectedStatus('all');
+                                }}
+                                className="text-xs font-semibold text-emerald-700 underline hover:text-emerald-900"
+                              >
+                                Reset Filter untuk menampilkan semua
+                              </button>
+                            )}
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        filteredReports.map((report) => (
+                          <tr key={report.id} className="hover:bg-slate-50">
+                            <td className="py-3 px-4 font-mono font-semibold text-slate-800">
+                              {report.ticketNumber}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="font-bold text-slate-900">{report.title}</div>
+                              <div className="text-[11px] text-slate-500">{report.dusun}</div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="font-medium text-slate-800">{report.reporterName}</div>
+                              <div className="text-[11px] text-slate-400 font-mono">{report.reporterPhone}</div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold capitalize ${
+                                  report.status === 'selesai'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : report.status === 'dalam_pengerjaan'
+                                    ? 'bg-indigo-100 text-indigo-800'
+                                    : report.status === 'disetujui_kades'
+                                    ? 'bg-sky-100 text-sky-800'
+                                    : report.status === 'terverifikasi'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : report.status === 'duplikat'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-amber-100 text-amber-800'
+                                }`}
+                              >
+                                {report.status.replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                onClick={() => openDetail(report)}
+                                className="px-2.5 py-1 font-semibold text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                              >
+                                Periksa & Tindak Lanjut
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-100 text-slate-700 font-semibold text-[11px] border-b border-slate-200">
+                      <tr>
+                        <th className="py-3 px-4">Tiket Surat</th>
+                        <th className="py-3 px-4">Pemohon</th>
+                        <th className="py-3 px-4">Jenis & Keperluan Surat</th>
+                        <th className="py-3 px-4">Tanggal Pengajuan</th>
+                        <th className="py-3 px-4">Status Berkas</th>
+                        <th className="py-3 px-4 text-right">Aksi Alur Pelayanan</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {letters.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-400">
+                            Belum ada permohonan surat administrasi yang diajukan oleh warga.
+                          </td>
+                        </tr>
+                      ) : (
+                        letters.map((letItem) => (
+                          <tr key={letItem.id} className="hover:bg-slate-50">
+                            <td className="py-3 px-4 font-mono font-bold text-slate-800">
+                              {letItem.ticketNumber}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="font-bold text-slate-900">{letItem.applicantName}</div>
+                              <div className="text-[11px] text-slate-500 font-mono">NIK: {letItem.applicantNik}</div>
+                              <div className="text-[10px] text-slate-400">{letItem.dusun} • {letItem.applicantPhone}</div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="font-semibold text-slate-800">{letItem.letterType}</div>
+                              <div className="text-[11px] text-slate-500 line-clamp-1 italic">
+                                &quot;{letItem.purpose}&quot;
+                              </div>
+                              {letItem.businessType && (
+                                <div className="text-[10px] text-emerald-700 font-medium">
+                                  Usaha: {letItem.businessType}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">
+                              {new Date(letItem.createdAt).toLocaleDateString('id-ID', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                  letItem.status === 'selesai'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : letItem.status === 'ditandatangani_kades'
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : letItem.status === 'diproses'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : letItem.status === 'ditolak'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-amber-100 text-amber-800'
+                                }`}
+                              >
+                                {letItem.status === 'menunggu_verifikasi' && <Clock className="w-3 h-3" />}
+                                {letItem.status === 'diproses' && <FileText className="w-3 h-3" />}
+                                {letItem.status === 'ditandatangani_kades' && <FileCheck className="w-3 h-3" />}
+                                {letItem.status === 'selesai' && <CheckCircle2 className="w-3 h-3" />}
+                                {letItem.status === 'ditolak' && <XCircle className="w-3 h-3" />}
+                                <span>{letItem.status.replace(/_/g, ' ').toUpperCase()}</span>
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                {letItem.status === 'menunggu_verifikasi' && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleUpdateLetterStatus(
+                                        letItem.id,
+                                        'diproses',
+                                        'Berkas persyaratan pemohon sedang diperiksa dan diverifikasi oleh petugas pelayanan desa.'
+                                      )
+                                    }
+                                    className="px-2.5 py-1 text-[11px] font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition"
+                                  >
+                                    Proses Berkas
+                                  </button>
+                                )}
+                                {letItem.status === 'diproses' && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleUpdateLetterStatus(
+                                        letItem.id,
+                                        'ditandatangani_kades',
+                                        'Berkas lengkap dan telah diajukan ke meja Kepala Desa untuk penandatanganan dan cap resmi.'
+                                      )
+                                    }
+                                    className="px-2.5 py-1 text-[11px] font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg transition"
+                                  >
+                                    Naikkan TTD Kades
+                                  </button>
+                                )}
+                                {letItem.status === 'ditandatangani_kades' && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleUpdateLetterStatus(
+                                        letItem.id,
+                                        'selesai',
+                                        'Surat telah selesai ditandatangani dan dicap resmi. Silakan pemohon datang ke Balai Desa membawa KTP/KK asli.',
+                                        'Hari kerja Senin - Jumat pukul 08.00 - 15.00 WIB'
+                                      )
+                                    }
+                                    className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg transition"
+                                  >
+                                    Selesai (Siap Diambil)
+                                  </button>
+                                )}
+                                {letItem.status !== 'selesai' && letItem.status !== 'ditolak' && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleUpdateLetterStatus(
+                                        letItem.id,
+                                        'ditolak',
+                                        'Data atau persyaratan belum sesuai. Silakan menghubungi petugas kantor desa untuk melengkapi berkas.'
+                                      )
+                                    }
+                                    className="px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50 rounded-lg transition"
+                                  >
+                                    Tolak
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* TAB 4: LAPORAN SAYA (WARGA) */}
         {activeTab === 'riwayat_saya' && (
           <div className="space-y-4">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-              <h3 className="text-sm font-bold text-slate-900">
-                Laporan Kerusakan yang Anda Ajukan
-              </h3>
-              <p className="text-xs text-slate-500">
-                Pantau proses verifikasi, disposisi anggaran kepala desa, dan bukti pengerjaan tim lapangan secara langsung.
-              </p>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  Riwayat Layanan Saya
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Pantau proses pengaduan fasilitas umum dan status berkas permohonan surat administrasi Anda secara transparan.
+                </p>
+              </div>
+
+              {/* Sub-tab Switcher: Pengaduan Saya vs Surat Saya */}
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setMySubTab('pengaduan')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    mySubTab === 'pengaduan'
+                      ? 'bg-white text-emerald-800 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>Pengaduan Fasilitas ({myReports.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMySubTab('surat')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    mySubTab === 'surat'
+                      ? 'bg-white text-emerald-800 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Permohonan Surat ({myLetters.length})</span>
+                </button>
+              </div>
             </div>
 
-            {myReports.length === 0 ? (
-              <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center space-y-3">
-                <p className="text-xs text-slate-500">
-                  {currentUser
-                    ? `Tidak ada laporan yang terdaftar atas nama ${currentUser.name}.`
-                    : 'Silakan masuk terlebih dahulu untuk melihat riwayat laporan Anda.'}
-                </p>
-                {currentUser && (
-                  <button
-                    onClick={() => setIsReportModalOpen(true)}
-                    className="px-4 py-2 bg-emerald-700 text-white rounded-lg text-xs font-semibold"
-                  >
-                    Ajukan Laporan Sekarang
-                  </button>
-                )}
-              </div>
+            {mySubTab === 'pengaduan' ? (
+              myReports.length === 0 ? (
+                <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center space-y-3">
+                  <p className="text-xs text-slate-500">
+                    {currentUser
+                      ? `Tidak ada laporan pengaduan fasilitas yang terdaftar atas nama ${currentUser.name}.`
+                      : 'Silakan masuk terlebih dahulu untuk melihat riwayat laporan Anda.'}
+                  </p>
+                  {currentUser && (
+                    <button
+                      onClick={() => setIsReportModalOpen(true)}
+                      className="px-4 py-2 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 transition"
+                    >
+                      Ajukan Pengaduan Sekarang
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {myReports.map((report) => (
+                    <div
+                      key={report.id}
+                      onClick={() => openDetail(report)}
+                      className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-300 cursor-pointer transition space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                          {report.ticketNumber}
+                        </span>
+                        <span className="text-[11px] font-semibold text-emerald-700 capitalize">
+                          {report.status.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-sm text-slate-900">{report.title}</h4>
+                      <p className="text-xs text-slate-600 line-clamp-2">{report.description}</p>
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                        <span>{report.dusun}</span>
+                        <span>{new Date(report.createdAt).toLocaleDateString('id-ID')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {myReports.map((report) => (
-                  <div
-                    key={report.id}
-                    onClick={() => openDetail(report)}
-                    className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-300 cursor-pointer transition space-y-2"
+              myLetters.length === 0 ? (
+                <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center space-y-3">
+                  <p className="text-xs text-slate-500">
+                    {currentUser
+                      ? `Belum ada pengajuan permohonan surat administrasi atas nama ${currentUser.name}.`
+                      : 'Silakan masuk terlebih dahulu untuk melihat riwayat surat administrasi Anda.'}
+                  </p>
+                  <button
+                    onClick={() => {
+                      if (!currentUser) {
+                        setIsAuthModalOpen(true);
+                      } else {
+                        setIsAdministrasiModalOpen(true);
+                      }
+                    }}
+                    className="px-4 py-2 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 transition"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                        {report.ticketNumber}
-                      </span>
-                      <span className="text-[11px] font-semibold text-emerald-700 capitalize">
-                        {report.status.replace(/_/g, ' ')}
-                      </span>
+                    Ajukan Permohonan Surat Online
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {myLetters.map((letItem) => (
+                    <div
+                      key={letItem.id}
+                      className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-800">
+                          {letItem.ticketNumber}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            letItem.status === 'selesai'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : letItem.status === 'ditandatangani_kades'
+                              ? 'bg-purple-100 text-purple-800'
+                              : letItem.status === 'diproses'
+                              ? 'bg-blue-100 text-blue-800'
+                              : letItem.status === 'ditolak'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {letItem.status.replace(/_/g, ' ').toUpperCase()}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="font-bold text-sm text-slate-900">{letItem.letterType}</h4>
+                        <p className="text-xs text-slate-600 mt-1">
+                          <span className="text-slate-400 font-medium">Keperluan: </span>
+                          {letItem.purpose}
+                        </p>
+                        {letItem.businessType && (
+                          <p className="text-xs text-emerald-700 font-medium mt-0.5">
+                            Bidang Usaha: {letItem.businessType}
+                          </p>
+                        )}
+                      </div>
+
+                      {letItem.pickupSchedule && (
+                        <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">
+                          <div className="font-semibold flex items-center gap-1 text-emerald-800">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Jadwal Pengambilan Dokumen:</span>
+                          </div>
+                          <p className="mt-0.5 text-[11px] text-emerald-700 font-medium">
+                            {letItem.pickupSchedule} di Kantor Balai Desa Simandulang.
+                          </p>
+                        </div>
+                      )}
+
+                      {letItem.officerNotes && (
+                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
+                          <span className="font-semibold text-slate-900">Catatan Petugas: </span>
+                          <span>{letItem.officerNotes}</span>
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>{letItem.dusun}</span>
+                        <span>{new Date(letItem.createdAt).toLocaleDateString('id-ID')}</span>
+                      </div>
                     </div>
-                    <h4 className="font-bold text-sm text-slate-900">{report.title}</h4>
-                    <p className="text-xs text-slate-600 line-clamp-2">{report.description}</p>
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                      <span>{report.dusun}</span>
-                      <span>{new Date(report.createdAt).toLocaleDateString('id-ID')}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             )}
           </div>
         )}
@@ -1365,6 +1755,7 @@ export default function Home() {
       <AiAssistantWidget
         reports={reports}
         sawResults={sawResults}
+        letters={letters}
         isOpenExternal={forceOpenAi}
         onOpenReportModal={() => {
           if (!currentUser) {
@@ -1387,6 +1778,7 @@ export default function Home() {
         onClose={() => setIsAdministrasiModalOpen(false)}
         currentUser={currentUser}
         onOpenAuth={() => setIsAuthModalOpen(true)}
+        onSubmitLetter={handleCreateLetter}
       />
 
       <PerpajakanModal

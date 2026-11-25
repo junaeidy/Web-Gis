@@ -16,7 +16,7 @@ import {
   Plus,
   HelpCircle,
 } from 'lucide-react';
-import { Report, SAWResult } from '@/types';
+import { Report, SAWResult, LetterRequest } from '@/types';
 import { processUserQuery, AssistantResponse } from '@/lib/ai-assistant';
 
 interface ChatMessage {
@@ -33,6 +33,7 @@ interface ChatMessage {
 interface AiAssistantWidgetProps {
   reports: Report[];
   sawResults: SAWResult[];
+  letters?: LetterRequest[];
   isOpenExternal?: boolean;
   onOpenReportModal: () => void;
   onOpenSawModal: () => void;
@@ -43,6 +44,7 @@ interface AiAssistantWidgetProps {
 export default function AiAssistantWidget({
   reports,
   sawResults,
+  letters = [],
   isOpenExternal = false,
   onOpenReportModal,
   onOpenSawModal,
@@ -112,7 +114,7 @@ Silakan ketik pertanyaan Anda secara bebas pada kolom di bawah.`,
 
     // Simulasi jeda halus pembacaan algoritma (200-300ms) agar terasa responsif
     setTimeout(() => {
-      const response = processUserQuery(trimmed, reports, sawResults);
+      const response = processUserQuery(trimmed, reports, sawResults, letters);
 
       const botMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,

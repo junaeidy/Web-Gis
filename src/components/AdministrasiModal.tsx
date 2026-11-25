@@ -12,7 +12,7 @@ import {
   Send,
   AlertCircle,
 } from 'lucide-react';
-import { Dusun, UserProfile } from '@/types';
+import { Dusun, UserProfile, LetterRequest, LetterType } from '@/types';
 import { useToast } from '@/components/ui/Toast';
 
 interface AdministrasiModalProps {
@@ -20,15 +20,15 @@ interface AdministrasiModalProps {
   onClose: () => void;
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
+  onSubmitLetter?: (newLetter: Omit<LetterRequest, 'id' | 'ticketNumber' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<string>;
 }
-
-type LetterType = 'sku' | 'sktm' | 'domisili' | 'pengantar_ktp';
 
 export default function AdministrasiModal({
   isOpen,
   onClose,
   currentUser,
   onOpenAuth,
+  onSubmitLetter,
 }: AdministrasiModalProps) {
   const [selectedType, setSelectedType] = useState<LetterType>('sku');
   const [nama, setNama] = useState(currentUser?.name || '');
@@ -36,6 +36,9 @@ export default function AdministrasiModal({
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [dusun, setDusun] = useState<Dusun>(currentUser?.dusun || 'Dusun I');
   const [keperluan, setKeperluan] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [businessType, setBusinessType] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState('');
 
@@ -86,7 +89,7 @@ export default function AdministrasiModal({
 
   const currentOption = letterOptions.find((o) => o.id === selectedType)!;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
       toastError('Perlu Masuk Akun', 'Silakan masuk akun terlebih dahulu untuk memproses permohonan surat.');
@@ -99,9 +102,30 @@ export default function AdministrasiModal({
       return;
     }
 
-    const generatedTicket = `SRT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    setIsSubmitting(true);
+    let generatedTicket = `SRT-2026-${Math.floor(100 + Math.random() * 900)}`;
+
+    if (onSubmitLetter) {
+      try {
+        generatedTicket = await onSubmitLetter({
+          applicantId: currentUser.id,
+          applicantName: nama,
+          applicantPhone: phone,
+          applicantNik: nik,
+          dusun,
+          letterType: selectedType,
+          purpose: keperluan,
+          businessName: selectedType === 'sku' ? businessName : undefined,
+          businessType: selectedType === 'sku' ? businessType : undefined,
+        });
+      } catch {
+        // Fallback ticket tetap jalan
+      }
+    }
+
     setTicketId(generatedTicket);
     setIsSubmitted(true);
+    setIsSubmitting(false);
     toastSuccess('Permohonan Terkirim!', `Nomor permohonan surat: ${generatedTicket}`);
   };
 
@@ -226,21 +250,50 @@ export default function AdministrasiModal({
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Wilayah Dusun Domisili <span className="text-red-500">*</span>
+                    Kawasan Wilayah Domisili <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={dusun}
                     onChange={(e) => setDusun(e.target.value as Dusun)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white"
                   >
-                    <option value="Dusun I">Dusun I (Simandulang Pantai)</option>
-                    <option value="Dusun II">Dusun II (Pusat Balai Desa)</option>
-                    <option value="Dusun III">Dusun III (Sei Puyuh)</option>
-                    <option value="Dusun IV">Dusun IV (Dusun Gori)</option>
-                    <option value="Dusun V">Dusun V (Tambak & Rawa)</option>
+                    <option value="Dusun I">Kawasan Pesisir Pantai (Dusun I)</option>
+                    <option value="Dusun II">Kawasan Pusat Balai Desa (Dusun II)</option>
+                    <option value="Dusun III">Kawasan Sei Puyuh (Dusun III)</option>
+                    <option value="Dusun IV">Kawasan Pemukiman Gori (Dusun IV)</option>
+                    <option value="Dusun V">Kawasan Sentra Tambak & Rawa (Dusun V)</option>
                   </select>
                 </div>
               </div>
+
+              {selectedType === 'sku' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-emerald-50/50 border border-emerald-200 rounded-xl">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Nama Usaha <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      placeholder="Contoh: Tangkahan Nelayan Berkah"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Jenis / Bidang Usaha
+                    </label>
+                    <input
+                      type="text"
+                      value={businessType}
+                      onChange={(e) => setBusinessType(e.target.value)}
+                      placeholder="Contoh: Perikanan Tangkap / Warung / Kelapa Sawit"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white text-xs"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
@@ -263,10 +316,11 @@ export default function AdministrasiModal({
                 </div>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-semibold text-xs shadow-md transition"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-semibold text-xs shadow-md transition disabled:opacity-50"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Kirim Permohonan Surat</span>
+                  <span>{isSubmitting ? 'Mengirim Data...' : 'Kirim Permohonan Surat'}</span>
                 </button>
               </div>
             </form>

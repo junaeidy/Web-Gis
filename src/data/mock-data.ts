@@ -1,4 +1,4 @@
-import { Report, ReportEvaluation, UserProfile } from '@/types';
+import { Report, ReportEvaluation, UserProfile, LetterRequest } from '@/types';
 
 export const MOCK_USERS: UserProfile[] = [
   {
@@ -332,5 +332,58 @@ export const INITIAL_EVALUATIONS: ReportEvaluation[] = [
     verifiedCostRupiah: 16500000,
     verificationNotes: 'Kondisi becek musiman. Direkomendasikan penimbunan sirtu gotong royong swadaya sebelum diusulkan semenisasi permanen.',
     verifiedAt: '2026-11-20T09:00:00Z',
+  },
+];
+
+// DATA AWAL PERMOHONAN SURAT DESA
+export const INITIAL_LETTERS: LetterRequest[] = [
+  {
+    id: 'ltr-01',
+    ticketNumber: 'SRT-2026-001',
+    applicantId: 'usr-warga-1',
+    applicantName: 'Bahrul Efendi',
+    applicantPhone: '081263451122',
+    applicantNik: '1223021504850001',
+    dusun: 'Dusun I',
+    letterType: 'sku',
+    purpose: 'Syarat pengajuan pinjaman modal usaha perikanan di Bank Sumut',
+    businessName: 'Tangkahan Ikan Barokah',
+    businessType: 'Perikanan Tangkap Nelayan',
+    status: 'selesai',
+    processedBy: 'Kaur Tata Usaha (Pak Ridwan)',
+    officerNotes: 'Berkas lengkap dan telah ditandatangani Kepala Desa Simandulang. Surat fisik siap diambil di Balai Desa.',
+    completedAt: '2026-11-24T14:30:00Z',
+    createdAt: '2026-11-23T08:15:00Z',
+    updatedAt: '2026-11-24T14:30:00Z',
+  },
+  {
+    id: 'ltr-02',
+    ticketNumber: 'SRT-2026-002',
+    applicantId: 'usr-warga-2',
+    applicantName: 'Siti Rahmah',
+    applicantPhone: '085277889900',
+    applicantNik: '1223024806900003',
+    dusun: 'Dusun II',
+    letterType: 'sktm',
+    purpose: 'Syarat beasiswa kuliah anak di Universitas Islam Negeri Sumatera Utara',
+    status: 'diproses',
+    processedBy: 'Kasi Pelayanan Desa',
+    officerNotes: 'Verifikasi surat pengantar RT selesai. Draf surat sedang diproses untuk ditandatangani Kepala Desa.',
+    createdAt: '2026-11-24T10:00:00Z',
+    updatedAt: '2026-11-25T08:30:00Z',
+  },
+  {
+    id: 'ltr-03',
+    ticketNumber: 'SRT-2026-003',
+    applicantId: 'usr-warga-1',
+    applicantName: 'Bahrul Efendi',
+    applicantPhone: '081263451122',
+    applicantNik: '1223021504850001',
+    dusun: 'Dusun I',
+    letterType: 'domisili',
+    purpose: 'Keperluan pembukaan rekening tabungan nelayan Simandulang',
+    status: 'menunggu_verifikasi',
+    createdAt: '2026-11-25T09:45:00Z',
+    updatedAt: '2026-11-25T09:45:00Z',
   },
 ];

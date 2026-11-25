@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
-import { INITIAL_REPORTS, INITIAL_EVALUATIONS } from '@/data/mock-data';
+import { INITIAL_REPORTS, INITIAL_EVALUATIONS, INITIAL_LETTERS } from '@/data/mock-data';
 
 export async function GET() {
   if (!supabaseServer) {
@@ -11,11 +11,12 @@ export async function GET() {
   }
 
   try {
-    const [repRes, evalRes, supRes, profRes] = await Promise.all([
+    const [repRes, evalRes, supRes, profRes, ltrRes] = await Promise.all([
       supabaseServer.from('reports').select('*').order('created_at', { ascending: false }),
       supabaseServer.from('report_evaluations').select('*'),
       supabaseServer.from('report_supporters').select('*'),
       supabaseServer.from('profiles').select('*'),
+      supabaseServer.from('letter_requests').select('*').order('created_at', { ascending: false }),
     ]);
 
     if (repRes.error) {
@@ -27,6 +28,7 @@ export async function GET() {
       evaluations: evalRes.data || [],
       supporters: supRes.data || [],
       profiles: profRes.data || [],
+      letters: ltrRes.data || [],
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Server error saat query Supabase.';
@@ -224,6 +226,45 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json({ success: true, count });
+    }
+
+    if (action === 'insert_letter') {
+      const { count } = await supabaseServer.from('letter_requests').select('*', { count: 'exact', head: true });
+      const nextNum = ((count || 0) + 1).toString().padStart(3, '0');
+      const ticketNumber = `SRT-2026-${nextNum}`;
+
+      const insertData = {
+        ticket_number: ticketNumber,
+        applicant_name: payload.applicantName,
+        applicant_phone: payload.applicantPhone,
+        applicant_nik: payload.applicantNik,
+        dusun: payload.dusun,
+        letter_type: payload.letterType,
+        purpose: payload.purpose,
+        business_name: payload.businessName || null,
+        business_type: payload.businessType || null,
+        status: 'menunggu_verifikasi',
+      };
+
+      const { data, error } = await supabaseServer.from('letter_requests').insert(insertData).select().single();
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ data, ticketNumber });
+    }
+
+    if (action === 'update_letter') {
+      const { letterId, updates } = payload;
+      const updateData: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+      };
+      if (updates.status !== undefined) updateData.status = updates.status;
+      if (updates.officerNotes !== undefined) updateData.officer_notes = updates.officerNotes;
+      if (updates.rejectionReason !== undefined) updateData.rejection_reason = updates.rejectionReason;
+      if (updates.processedBy !== undefined) updateData.processed_by = updates.processedBy;
+      if (updates.status === 'selesai') updateData.completed_at = new Date().toISOString();
+
+      const { error } = await supabaseServer.from('letter_requests').update(updateData).eq('id', letterId);
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ error: 'Aksi tidak dikenal.' }, { status: 400 });

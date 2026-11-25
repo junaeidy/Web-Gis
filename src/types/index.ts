@@ -60,6 +60,38 @@ export interface KadesDisposition {
 export type ComplaintClassification = 'pengaduan' | 'aspirasi' | 'informasi';
 export type PrivacyLevel = 'publik' | 'anonim' | 'rahasia';
 
+// TIPE DATA PERMOHONAN SURAT DESA
+export type LetterType = 'sku' | 'sktm' | 'domisili' | 'pengantar_ktp';
+
+export type LetterStatus =
+  | 'menunggu_verifikasi'
+  | 'diproses'
+  | 'ditandatangani_kades'
+  | 'selesai'
+  | 'ditolak';
+
+export interface LetterRequest {
+  id: string;
+  ticketNumber: string; // e.g. "SRT-2026-001"
+  applicantId: string;
+  applicantName: string;
+  applicantPhone: string;
+  applicantNik: string;
+  dusun: Dusun;
+  letterType: LetterType;
+  purpose: string;
+  businessName?: string;
+  businessType?: string;
+  status: LetterStatus;
+  rejectionReason?: string;
+  officerNotes?: string;
+  processedBy?: string;
+  pickupSchedule?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Report {
   id: string;
   ticketNumber: string;

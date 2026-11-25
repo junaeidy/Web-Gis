@@ -1,4 +1,4 @@
-import { Report, SAWResult } from '@/types';
+import { Report, SAWResult, LetterRequest } from '@/types';
 
 // ==============================================================================
 // 1. TEXT PREPROCESSING & NLP UTILITIES (ALGORITMA MURNI INTERNAL)
@@ -407,7 +407,8 @@ export interface AssistantResponse {
 export function processUserQuery(
   rawQuery: string,
   reports: Report[],
-  sawResults: SAWResult[]
+  sawResults: SAWResult[],
+  letters: LetterRequest[] = []
 ): AssistantResponse {
   const query = rawQuery.trim();
   if (!query) {
@@ -496,6 +497,54 @@ Layanan ini siap mendampingi seluruh warga selama 24 jam untuk:
 
 Silakan ketik pertanyaan Anda secara bebas!`,
       source: 'general_guide',
+    };
+  }
+
+  // ----------------------------------------------------------------------------
+  // DETEKSI ENTITAS 0: PENGECEKAN NOMOR TIKET PERMOHONAN SURAT (e.g., #SRT-2026-001)
+  // ----------------------------------------------------------------------------
+  let matchedLetter: LetterRequest | undefined = undefined;
+  for (const ltr of letters) {
+    if (queryLower.includes(ltr.ticketNumber.toLowerCase())) {
+      matchedLetter = ltr;
+      break;
+    }
+  }
+
+  if (!matchedLetter && (queryLower.includes('srt-') || queryLower.includes('surat'))) {
+    const srtPattern = /(?:srt-?)\s*([0-9-]+)/i;
+    const srtMatch = query.match(srtPattern);
+    if (srtMatch) {
+      const srtNum = srtMatch[1].replace(/[^0-9]/g, '');
+      matchedLetter = letters.find((l) => l.ticketNumber.replace(/[^0-9]/g, '').endsWith(srtNum));
+    }
+  }
+
+  if (matchedLetter) {
+    const statusLabel =
+      matchedLetter.status === 'selesai'
+        ? 'Selesai & Berkas Siap Diambil di Balai Desa'
+        : matchedLetter.status === 'ditandatangani_kades'
+        ? 'Telah Disetujui & Ditandatangani Kepala Desa'
+        : matchedLetter.status === 'diproses'
+        ? 'Sedang Diproses oleh Staf Tata Usaha'
+        : matchedLetter.status === 'ditolak'
+        ? 'Ditolak (Berkas Belum Lengkap)'
+        : 'Menunggu Verifikasi Berkas Staf Desa';
+
+    return {
+      answer: `**Data Status Permohonan Surat (${matchedLetter.ticketNumber}):**
+- **Jenis Surat:** ${matchedLetter.letterType.toUpperCase()}
+- **Nama Pemohon:** ${matchedLetter.applicantName}
+- **Wilayah Domisili:** ${matchedLetter.dusun}
+- **Status Permohonan:** **${statusLabel}**
+- **Keperluan:** ${matchedLetter.purpose}
+${matchedLetter.businessName ? `- **Nama Usaha:** ${matchedLetter.businessName}\n` : ''}
+${matchedLetter.processedBy ? `- **Petugas Pelaksana:** ${matchedLetter.processedBy}\n` : ''}
+${matchedLetter.officerNotes ? `- **Catatan Petugas:** "${matchedLetter.officerNotes}"\n` : ''}
+
+${matchedLetter.status === 'selesai' ? 'Surat fisik asli telah ditandatangani dan siap diambil di Kantor Balai Desa Simandulang pada jam operasional kerja.' : 'Proses administrasi surat rata-rata diselesaikan dalam 1 hari kerja.'}`,
+      source: 'database_live',
     };
   }
 

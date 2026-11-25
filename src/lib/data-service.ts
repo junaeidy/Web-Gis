@@ -1,5 +1,5 @@
-import { Report, ReportEvaluation, UserProfile, ReportStatus, KadesDisposition, Dusun, InfrastructureType, UserRole } from '@/types';
-import { MOCK_USERS } from '@/data/mock-data';
+import { Report, ReportEvaluation, UserProfile, ReportStatus, KadesDisposition, Dusun, InfrastructureType, UserRole, LetterRequest, LetterStatus, LetterType } from '@/types';
+import { MOCK_USERS, INITIAL_LETTERS } from '@/data/mock-data';
 
 const KEY_CURRENT_USER = 'sipdesa_smd_current_user_v3';
 
@@ -50,6 +50,27 @@ interface RawReport {
 interface RawSupporter {
   report_id: string;
   user_id: string;
+}
+
+interface RawLetter {
+  id: string;
+  ticket_number: string;
+  applicant_id?: string;
+  applicant_name: string;
+  applicant_phone: string;
+  applicant_nik?: string;
+  dusun: Dusun;
+  letter_type: LetterType;
+  purpose: string;
+  business_name?: string;
+  business_type?: string;
+  status: LetterStatus;
+  rejection_reason?: string;
+  officer_notes?: string;
+  processed_by?: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface RawEvaluation {
@@ -133,6 +154,7 @@ export async function insertUserToDb(_newUser?: UserProfile): Promise<{ success:
 export async function fetchReportsFromDb(): Promise<{
   reports: Report[];
   evaluations: ReportEvaluation[];
+  letters: LetterRequest[];
   error: string | null;
 }> {
   try {
@@ -140,7 +162,7 @@ export async function fetchReportsFromDb(): Promise<{
     const json = await res.json();
 
     if (!res.ok || json.error) {
-      return { reports: [], evaluations: [], error: json.error || 'Gagal memuat data dari database.' };
+      return { reports: [], evaluations: [], letters: INITIAL_LETTERS, error: json.error || 'Gagal memuat data dari database.' };
     }
 
     const dbReports = (json.reports || []) as RawReport[];
@@ -232,10 +254,99 @@ export async function fetchReportsFromDb(): Promise<{
       verifiedAt: e.verified_at,
     }));
 
-    return { reports: mappedReports, evaluations: mappedEvals, error: null };
+    const dbLetters = (json.letters || []) as RawLetter[];
+    const mappedLetters: LetterRequest[] = dbLetters.length > 0
+      ? dbLetters.map((l) => ({
+          id: l.id,
+          ticketNumber: l.ticket_number,
+          applicantId: l.applicant_id || 'guest',
+          applicantName: l.applicant_name,
+          applicantPhone: l.applicant_phone,
+          applicantNik: l.applicant_nik || '',
+          dusun: l.dusun,
+          letterType: l.letter_type,
+          purpose: l.purpose,
+          businessName: l.business_name,
+          businessType: l.business_type,
+          status: l.status,
+          rejectionReason: l.rejection_reason,
+          officerNotes: l.officer_notes,
+          processedBy: l.processed_by,
+          completedAt: l.completed_at,
+          createdAt: l.created_at,
+          updatedAt: l.updated_at,
+        }))
+      : INITIAL_LETTERS;
+
+    return { reports: mappedReports, evaluations: mappedEvals, letters: mappedLetters, error: null };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Koneksi ke backend database gagal.';
-    return { reports: [], evaluations: [], error: msg };
+    return { reports: [], evaluations: [], letters: INITIAL_LETTERS, error: msg };
+  }
+}
+
+export async function insertLetterToDb(
+  newLetter: Omit<LetterRequest, 'id' | 'ticketNumber' | 'createdAt' | 'updatedAt' | 'status'>
+): Promise<{ letter: LetterRequest | null; ticketNumber: string; error: string | null }> {
+  try {
+    const res = await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'insert_letter', payload: newLetter }),
+    });
+
+    const json = await res.json();
+    if (!res.ok || json.error) {
+      // Fallback ticket jika Supabase belum dipasangi tabel
+      const fallbackTicket = `SRT-2026-${Math.floor(100 + Math.random() * 900)}`;
+      return { letter: null, ticketNumber: fallbackTicket, error: json.error || null };
+    }
+
+    const data = json.data as RawLetter;
+    const created: LetterRequest = {
+      id: data.id,
+      ticketNumber: data.ticket_number || json.ticketNumber,
+      applicantId: data.applicant_id || newLetter.applicantId,
+      applicantName: data.applicant_name,
+      applicantPhone: data.applicant_phone,
+      applicantNik: data.applicant_nik || newLetter.applicantNik,
+      dusun: data.dusun,
+      letterType: data.letter_type,
+      purpose: data.purpose,
+      businessName: data.business_name,
+      businessType: data.business_type,
+      status: data.status || 'menunggu_verifikasi',
+      createdAt: data.created_at || new Date().toISOString(),
+      updatedAt: data.updated_at || new Date().toISOString(),
+    };
+
+    return { letter: created, ticketNumber: created.ticketNumber, error: null };
+  } catch (err: unknown) {
+    const fallbackTicket = `SRT-2026-${Math.floor(100 + Math.random() * 900)}`;
+    const msg = err instanceof Error ? err.message : 'Gagal menyimpan permohonan surat.';
+    return { letter: null, ticketNumber: fallbackTicket, error: msg };
+  }
+}
+
+export async function updateLetterInDb(
+  letterId: string,
+  updates: Partial<LetterRequest>
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const res = await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_letter', payload: { letterId, updates } }),
+    });
+
+    const json = await res.json();
+    if (!res.ok || json.error) {
+      return { success: false, error: json.error || 'Gagal memperbarui status surat.' };
+    }
+    return { success: true, error: null };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Gagal memperbarui status surat.';
+    return { success: false, error: msg };
   }
 }
 
