@@ -56,6 +56,7 @@ import {
   AlertTriangle,
   Navigation,
   X,
+  ChevronDown,
   LayoutGrid,
   ArrowLeft,
   Mail,
@@ -760,148 +761,192 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 6. TABS NAVIGASI */}
+      {/* 6. TABS NAVIGASI & FILTER DATA */}
       <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 pb-2 w-full">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none text-xs">
-            <button
-              onClick={() => setActiveTab('peta')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition shrink-0 ${
-                activeTab === 'peta'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <MapPin className="w-3.5 h-3.5" />
-              Peta Sebaran Pengaduan
-            </button>
+        {/* Row 1: Navigasi Tab Utama (Responsif, scroll horizontal mulus, tidak saling menumpuk) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200 text-xs">
+          <button
+            type="button"
+            onClick={() => setActiveTab('peta')}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition shrink-0 ${
+              activeTab === 'peta'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            <span>Peta Sebaran Pengaduan</span>
+          </button>
 
+          <button
+            type="button"
+            onClick={() => setActiveTab('saw')}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition shrink-0 ${
+              activeTab === 'saw'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>Urutan Prioritas Penanganan</span>
+            <span className="px-1.5 py-0.5 bg-emerald-600 text-white text-[10px] font-bold rounded-full">
+              {filteredSawResults.length}
+            </span>
+          </button>
+
+          {currentUser && currentUser.role !== 'warga' && (
             <button
-              onClick={() => setActiveTab('saw')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition shrink-0 ${
-                activeTab === 'saw'
+              type="button"
+              onClick={() => setActiveTab('laporan')}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition shrink-0 ${
+                activeTab === 'laporan'
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              <TrendingUp className="w-3.5 h-3.5" />
-              Urutan Prioritas Penanganan
-              <span className="px-1.5 py-0.2 bg-emerald-600 text-white text-[10px] rounded-full">
-                {filteredSawResults.length}
+              <FileText className="w-3.5 h-3.5" />
+              <span>Tindak Lanjut Petugas</span>
+              {stats.pending > 0 && (
+                <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full">
+                  {stats.pending}
+                </span>
+              )}
+            </button>
+          )}
+
+          {currentUser && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('riwayat_saya')}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition shrink-0 ${
+                activeTab === 'riwayat_saya'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Pengaduan Saya</span>
+              <span className="px-1.5 py-0.5 bg-slate-200 text-slate-800 text-[10px] font-bold rounded-full">
+                {myReports.length}
               </span>
             </button>
+          )}
 
-            {currentUser && currentUser.role !== 'warga' && (
-              <button
-                onClick={() => setActiveTab('laporan')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition shrink-0 ${
-                  activeTab === 'laporan'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                Tindak Lanjut Petugas
-                {stats.pending > 0 && (
-                  <span className="px-1.5 py-0.2 bg-amber-500 text-white text-[10px] rounded-full">
-                    {stats.pending}
-                  </span>
-                )}
-              </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('monitoring')}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold transition shrink-0 ${
+              activeTab === 'monitoring'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Rekapitulasi Desa</span>
+          </button>
+        </div>
+
+        {/* Row 2: Dedicated Filter Toolbar (Leluasa, tidak bertabrakan dengan tab navigasi) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 pb-1 text-xs">
+          {/* Status & Ringkasan Data Terfilter */}
+          <div className="flex items-center gap-2 text-slate-600">
+            <span className="inline-flex items-center justify-center p-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+              <Filter className="w-3.5 h-3.5" />
+            </span>
+            <span className="font-semibold text-slate-800">Filter Data:</span>
+            <span className="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-mono">
+              {filteredReports.length} dari {reports.length} laporan
+            </span>
+            {(selectedDusun !== 'all' || selectedType !== 'all' || selectedStatus !== 'all') && (
+              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                Filter Aktif
+              </span>
             )}
-
-            {currentUser && (
-              <button
-                onClick={() => setActiveTab('riwayat_saya')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition shrink-0 ${
-                  activeTab === 'riwayat_saya'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <User className="w-3.5 h-3.5" />
-                Pengaduan Saya ({myReports.length})
-              </button>
-            )}
-
-            <button
-              onClick={() => setActiveTab('monitoring')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition shrink-0 ${
-                activeTab === 'monitoring'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <BarChart3 className="w-3.5 h-3.5" />
-              Rekapitulasi Desa
-            </button>
           </div>
 
-          {/* Filter Wilayah & Status */}
-          <div className="flex flex-wrap items-center gap-2 text-xs self-end md:self-auto w-full md:w-auto">
-            <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <select
-              value={selectedDusun}
-              onChange={(e) => setSelectedDusun(e.target.value)}
-              className={`flex-1 md:flex-initial px-2 py-1 bg-white border rounded-lg text-xs focus:outline-none transition ${
-                selectedDusun !== 'all'
-                  ? 'border-emerald-600 font-semibold text-emerald-950 bg-emerald-50/50'
-                  : 'border-slate-200 text-slate-700'
-              }`}
-            >
-              <option value="all">Semua Wilayah</option>
-              <option value="Dusun I">Kawasan Pesisir Pantai</option>
-              <option value="Dusun II">Kawasan Pusat Balai Desa</option>
-              <option value="Dusun III">Kawasan Sei Puyuh</option>
-              <option value="Dusun IV">Kawasan Pemukiman Gori</option>
-              <option value="Dusun V">Kawasan Sentra Tambak</option>
-            </select>
+          {/* Kontrol Dropdown Filter */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filter Wilayah */}
+            <div className="relative flex-1 sm:flex-initial min-w-[140px]">
+              <select
+                value={selectedDusun}
+                onChange={(e) => setSelectedDusun(e.target.value)}
+                className={`w-full appearance-none pl-3 pr-8 py-1.5 bg-white border rounded-lg text-xs focus:outline-none transition shadow-2xs cursor-pointer ${
+                  selectedDusun !== 'all'
+                    ? 'border-emerald-600 font-semibold text-emerald-950 bg-emerald-50/50'
+                    : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <option value="all">Semua Wilayah</option>
+                <option value="Dusun I">Kawasan Pesisir Pantai</option>
+                <option value="Dusun II">Kawasan Pusat Balai Desa</option>
+                <option value="Dusun III">Kawasan Sei Puyuh</option>
+                <option value="Dusun IV">Kawasan Pemukiman Gori</option>
+                <option value="Dusun V">Kawasan Sentra Tambak</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                <ChevronDown className="w-3.5 h-3.5" />
+              </div>
+            </div>
 
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className={`flex-1 md:flex-initial px-2 py-1 bg-white border rounded-lg text-xs focus:outline-none transition ${
-                selectedType !== 'all'
-                  ? 'border-emerald-600 font-semibold text-emerald-950 bg-emerald-50/50'
-                  : 'border-slate-200 text-slate-700'
-              }`}
-            >
-              <option value="all">Semua Kategori</option>
-              <optgroup label="Infrastruktur & Lingkungan">
-                <option value="jalan_poros">Jalan Poros Utama</option>
-                <option value="jalan_lingkungan">Jalan Lingkungan / Gang</option>
-                <option value="jembatan">Jembatan Penyeberangan</option>
-                <option value="drainase_tanggul_rob">Tanggul Rob & Parit</option>
-                <option value="dermaga_tangkahan">Tangkahan Nelayan</option>
-                <option value="fasilitas_umum">Fasilitas Publik / Balai</option>
-              </optgroup>
-              <optgroup label="Pengaduan Pelayanan & Sosial">
-                <option value="kebersihan_sampah">Kebersihan & Sampah</option>
-                <option value="pelayanan_administrasi">Pelayanan Kantor Desa</option>
-                <option value="bantuan_sosial">Bantuan Sosial (BLT-DD)</option>
-                <option value="keamanan_ketertiban">Penerangan & Keamanan</option>
-                <option value="aspirasi_pembangunan">Aspirasi Pembangunan</option>
-              </optgroup>
-            </select>
+            {/* Filter Kategori */}
+            <div className="relative flex-1 sm:flex-initial min-w-[150px]">
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className={`w-full appearance-none pl-3 pr-8 py-1.5 bg-white border rounded-lg text-xs focus:outline-none transition shadow-2xs cursor-pointer ${
+                  selectedType !== 'all'
+                    ? 'border-emerald-600 font-semibold text-emerald-950 bg-emerald-50/50'
+                    : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <option value="all">Semua Kategori</option>
+                <optgroup label="Infrastruktur & Lingkungan">
+                  <option value="jalan_poros">Jalan Poros Utama</option>
+                  <option value="jalan_lingkungan">Jalan Lingkungan / Gang</option>
+                  <option value="jembatan">Jembatan Penyeberangan</option>
+                  <option value="drainase_tanggul_rob">Tanggul Rob & Parit</option>
+                  <option value="dermaga_tangkahan">Tangkahan Nelayan</option>
+                  <option value="fasilitas_umum">Fasilitas Publik / Balai</option>
+                </optgroup>
+                <optgroup label="Pengaduan Pelayanan & Sosial">
+                  <option value="kebersihan_sampah">Kebersihan & Sampah</option>
+                  <option value="pelayanan_administrasi">Pelayanan Kantor Desa</option>
+                  <option value="bantuan_sosial">Bantuan Sosial (BLT-DD)</option>
+                  <option value="keamanan_ketertiban">Penerangan & Keamanan</option>
+                  <option value="aspirasi_pembangunan">Aspirasi Pembangunan</option>
+                </optgroup>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                <ChevronDown className="w-3.5 h-3.5" />
+              </div>
+            </div>
 
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className={`flex-1 md:flex-initial px-2 py-1 bg-white border rounded-lg text-xs focus:outline-none transition ${
-                selectedStatus !== 'all'
-                  ? 'border-emerald-600 font-semibold text-emerald-950 bg-emerald-50/50'
-                  : 'border-slate-200 text-slate-700'
-              }`}
-            >
-              <option value="all">Semua Status</option>
-              <option value="menunggu_verifikasi">Menunggu Survei</option>
-              <option value="terverifikasi">Masuk Antrean</option>
-              <option value="disetujui_kades">Disetujui Kades</option>
-              <option value="dalam_pengerjaan">Dikerjakan</option>
-              <option value="selesai">Selesai</option>
-              <option value="duplikat">Laporan Duplikat</option>
-            </select>
+            {/* Filter Status */}
+            <div className="relative flex-1 sm:flex-initial min-w-[140px]">
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className={`w-full appearance-none pl-3 pr-8 py-1.5 bg-white border rounded-lg text-xs focus:outline-none transition shadow-2xs cursor-pointer ${
+                  selectedStatus !== 'all'
+                    ? 'border-emerald-600 font-semibold text-emerald-950 bg-emerald-50/50'
+                    : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <option value="all">Semua Status</option>
+                <option value="menunggu_verifikasi">Menunggu Survei</option>
+                <option value="terverifikasi">Masuk Antrean</option>
+                <option value="disetujui_kades">Disetujui Kades</option>
+                <option value="dalam_pengerjaan">Dikerjakan</option>
+                <option value="selesai">Selesai</option>
+                <option value="duplikat">Laporan Duplikat</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                <ChevronDown className="w-3.5 h-3.5" />
+              </div>
+            </div>
 
+            {/* Tombol Reset Filter */}
             {(selectedDusun !== 'all' || selectedType !== 'all' || selectedStatus !== 'all') && (
               <button
                 type="button"
@@ -910,11 +955,11 @@ export default function Home() {
                   setSelectedType('all');
                   setSelectedStatus('all');
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-semibold transition"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-semibold transition shadow-2xs"
                 title="Reset semua filter ke kondisi awal"
               >
                 <X className="w-3 h-3" />
-                Reset Filter
+                <span>Reset</span>
               </button>
             )}
           </div>
