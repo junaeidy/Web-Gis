@@ -14,9 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Smart Desa Simandulang - Layanan Digital Terintegrasi & Akses Informasi Masyarakat",
+  title: "SIPANDAI Desa Simandulang - Sistem Informasi Pelayanan & Aspirasi Warga",
   description:
-    "Smart Desa: Pengembangan Layanan Digital Terintegrasi untuk Meningkatkan Akses Informasi dan Pelayanan Masyarakat. Dilengkapi Peta Interaktif Desa, Urutan Prioritas Penanganan, dan Pusat Bantuan Warga Desa Simandulang.",
+    "SIPANDAI Desa: Sistem Informasi Pelayanan & Aspirasi Warga Desa Simandulang, Kec. Kualuh Leidong. Layanan Administrasi Surat Online, Pengaduan Fasilitas Terpadu, Peta Spasial Desa, dan Asisten Pintar SiPandai.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

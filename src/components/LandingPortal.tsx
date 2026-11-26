@@ -93,65 +93,27 @@ export default function LandingPortal({
 
       {/* 2. KONTEN UTAMA PORTAL */}
       <div className="relative z-10 max-w-5xl w-full mx-auto flex flex-col items-center text-center space-y-6">
-        {/* LOGO LAMBANG DESA / DAERAH (PENTAGON SHIELD SEPERTI DI GAMBAR) */}
+        {/* LOGO LAMBANG DESA / EMBLEM SMART VILLAGE */}
         <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
-          <div className="relative w-20 h-24 sm:w-24 sm:h-28 flex items-center justify-center drop-shadow-xl">
-            {/* Vektor Lambang Pentagon Hijau & Emas */}
-            <svg
-              viewBox="0 0 100 115"
-              className="w-full h-full filter drop-shadow-md"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {/* Shield Outer */}
-              <polygon
-                points="50,5 95,38 78,110 22,110 5,38"
-                fill="#065f46"
-                stroke="#fbbf24"
-                strokeWidth="4"
-              />
-              {/* Inner Shield */}
-              <polygon
-                points="50,15 85,42 70,100 30,100 15,42"
-                fill="#047857"
-                stroke="#ffffff"
-                strokeWidth="2"
-              />
-              {/* Bintang Emas */}
-              <polygon
-                points="50,22 53,30 62,30 55,35 58,43 50,38 42,43 45,35 38,30 47,30"
-                fill="#fde047"
-              />
-              {/* Padi & Kapas / Lambang Kemakmuran */}
-              <circle cx="50" cy="58" r="14" fill="#ffffff" opacity="0.9" />
-              <path
-                d="M 36,75 Q 50,60 64,75"
-                stroke="#f59e0b"
-                strokeWidth="3"
-                fill="none"
-              />
-              {/* Pita Desa */}
-              <rect x="30" y="80" width="40" height="9" rx="2" fill="#dc2626" />
-              <text
-                x="50"
-                y="87"
-                fill="#ffffff"
-                fontSize="6"
-                fontWeight="bold"
-                textAnchor="middle"
-                fontFamily="sans-serif"
-              >
-                SIMANDULANG
-              </text>
-            </svg>
+          <div className="relative flex items-center justify-center">
+            {/* Logo Smart Village GIS Emblem */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="Logo SIPANDAI Desa Simandulang"
+              className="w-24 h-24 sm:w-28 sm:h-28 object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)] hover:scale-105 transition-transform duration-300"
+            />
           </div>
 
-          {/* JUDUL PORTAL SEPERTI PADA GAMBAR REFERENSI */}
-          <h1 className="mt-3 text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-widest uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-            DIGITAL DESA SIMANDULANG
+          {/* JUDUL PORTAL SIPANDAI DESA */}
+          <h1 className="mt-3 text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-wider uppercase drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+            SIPANDAI DESA
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-emerald-100 font-medium max-w-2xl px-4 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-            Pengembangan Layanan Digital Terintegrasi untuk Meningkatkan Akses Informasi dan Pelayanan Masyarakat
+          <div className="text-sm sm:text-base font-bold text-amber-300 tracking-wide uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            Desa Simandulang • Kec. Kualuh Leidong
+          </div>
+          <p className="mt-1 text-xs sm:text-sm text-emerald-100 font-medium max-w-2xl px-4 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+            Sistem Informasi Pelayanan & Aspirasi Warga Desa Terpadu • Menghubungkan Warga, Layanan Administrasi, dan Pemantauan Fasilitas Desa
           </p>
         </div>
 

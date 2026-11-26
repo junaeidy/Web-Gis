@@ -45,13 +45,13 @@ const INITIAL_WELCOME_MESSAGE: ChatMessage = {
   id: 'welcome-initial',
   sender: 'assistant',
   source: 'general_guide',
-  text: `Halo! Saya **Pusat Bantuan Informasi Desa Simandulang**.
+  text: `Halo! Saya **SiPandai**, asisten pintar pelayanan **SIPANDAI Desa Simandulang** (Sistem Informasi Pelayanan & Aspirasi Warga Desa).
 
-Layanan ini siap memberikan jawaban dan panduan seputar kebutuhan desa Anda, antara lain:
-- **Syarat Surat:** SKU, SKTM, Surat Domisili, Pengantar KTP/KK
-- **Jadwal & Lokasi:** Jam pelayanan kantor Balai Desa Simandulang
-- **Cek Status Laporan:** Perkembangan laporan pengaduan (contoh: *#SMD-2026-001*) atau permohonan surat (contoh: *#SRT-2026-001*)
-- **Pengaduan & Informasi Desa:** Pengaduan masalah desa (fasilitas, kebersihan, bansos), panduan banjir rob, dan urutan tindak lanjut desa
+Saya siap memberikan jawaban dan panduan seputar kebutuhan desa Anda, antara lain:
+- **Syarat Permohonan Surat:** SKU, SKTM, Surat Domisili, Pengantar KTP/KK
+- **Jadwal & Lokasi Pelayanan:** Jam buka operasional kantor Balai Desa Simandulang
+- **Cek Status Laporan & Surat:** Perkembangan tiket pengaduan (*#SMD-2026-001*) atau permohonan surat (*#SRT-2026-001*)
+- **Pengaduan & Bantuan Desa:** Pengaduan fasilitas rusak, kebersihan lingkungan, info bansos, dan panduan banjir pasang rob.
 
 Silakan ketik pertanyaan Anda secara bebas pada kolom di bawah.`,
   timestamp: 'Online',
@@ -122,7 +122,7 @@ export default function AiAssistantWidget({
     setInputText('');
     setIsTyping(true);
 
-    // Simulasi jeda halus pembacaan algoritma (200-300ms) agar terasa responsif
+    // Simulasi jeda alami pemrosesan data (800ms) agar terasa nyata seperti asisten sedang berpikir & mencari data
     setTimeout(() => {
       const response = processUserQuery(trimmed, reports, sawResults, letters);
 
@@ -139,7 +139,7 @@ export default function AiAssistantWidget({
 
       setMessages((prev) => [...prev, botMessage]);
       setIsTyping(false);
-    }, 250);
+    }, 800);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -201,10 +201,15 @@ export default function AiAssistantWidget({
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-40 group flex items-center gap-2.5 px-4 py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-emerald-600/30"
-          aria-label="Buka Asisten AI Desa"
+          aria-label="Buka Asisten SiPandai"
         >
           <div className="relative flex items-center justify-center">
-            <Bot className="w-5 h-5 text-emerald-200 group-hover:rotate-12 transition-transform duration-300" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="Logo SiPandai"
+              className="w-6 h-6 object-contain rounded-full bg-white/20 p-0.5 group-hover:rotate-12 transition-transform duration-300"
+            />
             <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
@@ -212,11 +217,11 @@ export default function AiAssistantWidget({
           </div>
           <div className="flex flex-col text-left">
             <span className="text-xs font-bold tracking-wide flex items-center gap-1">
-              Tanya Desa AI
+              Tanya SiPandai
               <Sparkles className="w-3 h-3 text-amber-300" />
             </span>
             <span className="text-[10px] text-emerald-200 font-medium leading-none">
-              Layanan Digital 24 Jam
+              SIPANDAI Desa 24 Jam
             </span>
           </div>
         </button>
@@ -228,21 +233,24 @@ export default function AiAssistantWidget({
           {/* HEADER CHAT */}
           <div className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between border-b border-slate-800 shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-9 w-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold shrink-0 shadow-inner">
-                <Bot className="w-5 h-5 text-emerald-100" />
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="Logo SiPandai"
+                className="h-9 w-9 rounded-xl object-contain bg-white/10 p-1 shrink-0 shadow-inner border border-white/10"
+              />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h3 className="font-bold text-xs sm:text-sm text-slate-100 truncate">
-                    Tanya Desa Simandulang
+                    SiPandai - Asisten Desa
                   </h3>
                   <span className="px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-700 text-[10px] font-medium">
-                    Bantuan Warga
+                    SIPANDAI Desa
                   </span>
                 </div>
                 <p className="text-[10px] text-emerald-400 flex items-center gap-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
-                  Layanan Aktif 24 Jam • Siap Membantu
+                  Layanan Aktif 24 Jam • Cepat & Tanggap
                 </p>
               </div>
             </div>
@@ -269,9 +277,9 @@ export default function AiAssistantWidget({
           <div className="bg-emerald-50/70 border-b border-emerald-100 px-3.5 py-1.5 flex items-center justify-between text-[10px] text-emerald-900">
             <span className="flex items-center gap-1.5 font-medium">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              Pusat Informasi Resmi Desa Simandulang
+              Pusat Pelayanan Resmi SIPANDAI Desa Simandulang
             </span>
-            <span className="text-slate-500 font-medium">Layanan Warga</span>
+            <span className="text-slate-500 font-medium">Bantuan Warga</span>
           </div>
 
           {/* AREA PESAN PERCAKAPAN */}
@@ -341,21 +349,35 @@ export default function AiAssistantWidget({
               );
             })}
 
-            {/* INDIKATOR ALGORITMA MEMPROSES */}
+            {/* INDIKATOR REALISTIS ASISTEN SIPANDAI MEMPROSES */}
             {isTyping && (
-              <div className="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 text-slate-500 text-[11px] w-fit">
-                <div className="flex gap-1 items-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-bounce"></span>
-                  <span
-                    className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-bounce"
-                    style={{ animationDelay: '0.15s' }}
-                  ></span>
-                  <span
-                    className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-bounce"
-                    style={{ animationDelay: '0.3s' }}
-                  ></span>
+              <div className="flex items-start gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo.png"
+                  alt="SiPandai"
+                  className="w-7 h-7 rounded-xl object-contain bg-emerald-800 p-0.5 shrink-0 shadow-2xs mt-0.5 border border-emerald-700"
+                />
+                <div className="bg-white rounded-2xl rounded-tl-xs p-3 border border-slate-200 shadow-2xs space-y-1.5 max-w-[85%]">
+                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 font-semibold">
+                    <Sparkles className="w-3 h-3 text-emerald-600 animate-spin" style={{ animationDuration: '3s' }} />
+                    <span>SiPandai sedang mencari data & mengetik...</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 pl-0.5 py-0.5">
+                    <span
+                      className="w-2 h-2 rounded-full bg-emerald-600 animate-bounce"
+                      style={{ animationDuration: '0.8s', animationDelay: '0s' }}
+                    ></span>
+                    <span
+                      className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce"
+                      style={{ animationDuration: '0.8s', animationDelay: '0.2s' }}
+                    ></span>
+                    <span
+                      className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce"
+                      style={{ animationDuration: '0.8s', animationDelay: '0.4s' }}
+                    ></span>
+                  </div>
                 </div>
-                <span>Menyiapkan jawaban untuk Anda...</span>
               </div>
             )}
 

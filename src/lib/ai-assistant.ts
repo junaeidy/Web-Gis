@@ -413,7 +413,7 @@ export function processUserQuery(
   const query = rawQuery.trim();
   if (!query) {
     return {
-      answer: 'Halo! Selamat datang di Pusat Bantuan & Informasi Desa Simandulang. Silakan ketikkan pertanyaan atau kebutuhan Anda seputar surat menyurat desa, pengaduan fasilitas, bansos, jadwal balai desa, atau pengecekan status laporan tiket.',
+      answer: 'Halo! Saya SiPandai, asisten pintar SIPANDAI Desa Simandulang. Silakan ketikkan pertanyaan atau kebutuhan Anda seputar surat menyurat desa, pengaduan fasilitas, bansos, jadwal balai desa, atau pengecekan status tiket permohonan.',
       source: 'general_guide',
     };
   }
@@ -427,6 +427,7 @@ export function processUserQuery(
   // ----------------------------------------------------------------------------
   const greetingWords = [
     'halo', 'helo', 'hello', 'hai', 'hi', 'hay', 'haloo', 'hola', 'hy',
+    'sipandai', 'pandai', 'bot', 'asisten',
     'assalamualaikum', 'assalam', 'samlikum', 'salam',
     'pagi', 'siang', 'sore', 'malam',
     'permisi', 'punten', 'tabik',
@@ -434,22 +435,24 @@ export function processUserQuery(
   ];
 
   const hasSpecificTopic = words.some((w) =>
-    ['tiket', 'smd', 'lapor', 'surat', 'sku', 'sktm', 'rob', 'bansos', 'blt', 'rusak', 'jam', 'jadwal', 'kantor', 'dusun', 'peta', 'biaya', 'syarat', 'pengaduan'].includes(w)
+    ['tiket', 'smd', 'srt', 'lapor', 'surat', 'sku', 'sktm', 'rob', 'bansos', 'blt', 'rusak', 'jam', 'jadwal', 'kantor', 'dusun', 'peta', 'biaya', 'syarat', 'pengaduan'].includes(w)
   );
 
   // 1. Sapaan Ramah Pembuka (Pure Greeting)
   const isPureGreeting =
     greetingWords.includes(cleanQuery) ||
+    cleanQuery.includes('halo sipandai') ||
+    cleanQuery.includes('hai sipandai') ||
     (words.length <= 4 && words.some((w) => greetingWords.includes(w)) && !hasSpecificTopic);
 
   if (isPureGreeting) {
     return {
-      answer: `Halo! Selamat datang di **Pusat Bantuan Informasi Desa Simandulang**.
+      answer: `Halo! Saya **SiPandai**, asisten pintar pelayanan **SIPANDAI Desa Simandulang** (Sistem Informasi Pelayanan & Aspirasi Warga Desa).
 
 Saya siap membantu Anda dengan informasi seputar:
-1. **Layanan Surat Desa:** Syarat pembuatan SKU Usaha, SKTM Tidak Mampu, Surat Domisili, dan Pengantar KTP/KK
+1. **Layanan Surat Desa:** Syarat permohonan SKU Usaha, SKTM Tidak Mampu, Surat Domisili, dan Pengantar KTP/KK
 2. **Pengaduan & Aspirasi:** Melaporkan fasilitas rusak, sampah lingkungan, pelayanan kantor, atau usulan pembangunan
-3. **Cek Status Laporan:** Memeriksa perkembangan nomor tiket (contoh: *#SMD-2026-001*) atau rekap penanganan per kawasan
+3. **Cek Status Tiket:** Memeriksa nomor tiket pengaduan (*#SMD-2026-xxx*) atau permohonan surat (*#SRT-2026-xxx*)
 4. **Bantuan Sosial (Bansos):** Info DTKS dan kriteria penerima BLT Dana Desa
 5. **Jam Kerja Kantor:** Jadwal pelayanan kantor Balai Desa Simandulang
 
@@ -483,15 +486,17 @@ Ada yang bisa kami bantu untuk Anda hari ini? Silakan ketikkan pertanyaan Anda s
     cleanQuery.includes('kamu siapa') ||
     cleanQuery.includes('anda siapa') ||
     cleanQuery.includes('kamu itu apa') ||
+    cleanQuery.includes('sipandai itu apa') ||
+    cleanQuery.includes('siapa sipandai') ||
     cleanQuery.includes('aplikasi apa');
 
   if (isIdentity) {
     return {
-      answer: `Saya adalah **Pusat Bantuan Informasi Digital Desa Simandulang**.
+      answer: `Saya adalah **SiPandai**, asisten pintar resmi dari sistem **SIPANDAI Desa Simandulang** (Sistem Informasi Pelayanan & Aspirasi Warga Desa).
 
 Layanan ini siap mendampingi seluruh warga selama 24 jam untuk:
 1. Memberikan informasi persyaratan surat menyurat kantor desa.
-2. Membantu pelacakan nomor tiket pengaduan masyarakat.
+2. Membantu pelacakan nomor tiket pengaduan fasilitas maupun permohonan surat.
 3. Memberikan panduan jam kantor balai desa dan program bantuan sosial (BLT Dana Desa).
 4. Menyediakan panduan kewaspadaan pasang rob bagi warga pesisir.
 

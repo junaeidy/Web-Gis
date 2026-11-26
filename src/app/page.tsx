@@ -533,17 +533,20 @@ export default function Home() {
             <div
               onClick={() => setViewMode('portal')}
               className="flex items-center gap-2.5 sm:gap-3 min-w-0 cursor-pointer group"
-              title="Kembali ke Portal Digital Desa"
+              title="Kembali ke Portal SIPANDAI Desa"
             >
-              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center font-bold text-xs sm:text-sm shrink-0 shadow-2xs group-hover:bg-emerald-900 transition">
-                SMART
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="Logo SIPANDAI Desa"
+                className="h-10 w-10 sm:h-11 sm:w-11 object-contain rounded-xl shrink-0 p-0.5 bg-white shadow-xs border border-slate-200 group-hover:scale-105 transition-transform"
+              />
               <div className="min-w-0">
                 <h1 className="text-xs sm:text-sm md:text-base font-bold text-slate-900 tracking-tight leading-tight truncate group-hover:text-emerald-800 transition">
-                  Smart Desa Simandulang
+                  SIPANDAI Desa Simandulang
                 </h1>
                 <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">
-                  Kec. Kualuh Leidong • Portal Layanan Digital Terpadu
+                  Sistem Informasi Pelayanan & Aspirasi Warga Desa • Kualuh Leidong
                 </p>
               </div>
             </div>
@@ -1743,10 +1746,10 @@ export default function Home() {
       <footer className="border-t border-slate-200 bg-white py-4 mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2 text-center sm:text-left">
           <div>
-            <strong>Smart Desa:</strong> Pengembangan Layanan Digital Terintegrasi untuk Meningkatkan Akses Informasi dan Pelayanan Masyarakat
+            <strong>SIPANDAI Desa:</strong> Sistem Informasi Pelayanan & Aspirasi Warga Desa Simandulang
           </div>
           <div>
-            Desa Simandulang, Kec. Kualuh Leidong, Kab. Labuhanbatu Utara • Layanan Pengaduan Terpadu & Asisten Pintar Pelayanan Desa
+            Kec. Kualuh Leidong, Kab. Labuhanbatu Utara • Layanan Administrasi, Pengaduan Terpadu & Asisten Pintar SiPandai
           </div>
         </div>
       </footer>
